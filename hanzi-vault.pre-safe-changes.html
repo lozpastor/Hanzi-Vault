@@ -1,0 +1,2065 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漢字 Vault — Tu diccionario de chino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root {
+  --bg: #f2f1ed;
+  --bg2: #ffffff;
+  --bg3: #eeebe4;
+  --sidebar: #1a1814;
+  --sidebar-text: #c8c2b4;
+  --sidebar-active: #ffffff;
+  --sidebar-hover: rgba(255,255,255,0.07);
+  --text: #1a1814;
+  --text2: #6b6560;
+  --text3: #9c9590;
+  --border: rgba(26,24,20,0.1);
+  --border2: rgba(26,24,20,0.06);
+  --accent: #e14f2b;
+  --accent2: #ff7452;
+  --accent-bg: rgba(225,79,43,0.08);
+  --green: #1a7a4a;
+  --green-bg: rgba(26,122,74,0.1);
+  --blue: #1757a8;
+  --blue-bg: rgba(23,87,168,0.1);
+  --purple: #6b3fa0;
+  --purple-bg: rgba(107,63,160,0.1);
+  --red: #c0392b;
+  --red-bg: rgba(192,57,43,0.1);
+  --yellow: #b8860b;
+  --yellow-bg: rgba(184,134,11,0.1);
+  --card-shadow: 0 1px 3px rgba(26,24,20,0.06), 0 4px 16px rgba(26,24,20,0.04);
+  --card-shadow-hover: 0 18px 42px rgba(26,24,20,0.10);
+  --radius: 4px;
+  --radius-sm: 3px;
+  --transition: 0.18s cubic-bezier(0.4,0,0.2,1);
+  --font: 'DM Sans', sans-serif;
+  --font-serif: 'DM Serif Display', serif;
+  --font-zh: 'Noto Sans SC', sans-serif;
+}
+[data-theme="dark"] {
+  --bg: #0f0e0c;
+  --bg2: #1a1814;
+  --bg3: #242018;
+  --sidebar: #0a0908;
+  --sidebar-text: #7a7268;
+  --sidebar-active: #f0ede8;
+  --text: #f0ede8;
+  --text2: #9c9590;
+  --text3: #6b6560;
+  --border: rgba(240,237,232,0.1);
+  --border2: rgba(240,237,232,0.05);
+  --accent: #e8760f;
+  --accent2: #f59340;
+  --accent-bg: rgba(232,118,15,0.12);
+  --green: #22a05c;
+  --green-bg: rgba(34,160,92,0.12);
+  --blue: #4a90e2;
+  --blue-bg: rgba(74,144,226,0.12);
+  --purple: #9b6dd6;
+  --purple-bg: rgba(155,109,214,0.12);
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.15);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:inherit}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:232px;min-width:232px;background:#121212;display:flex;flex-direction:column;padding:0;overflow:hidden;transition:width .25s ease}
+.app.sidebar-collapsed .sidebar{width:66px;min-width:66px}
+.app.sidebar-collapsed .logo-copy,.app.sidebar-collapsed .nav-label,.app.sidebar-collapsed .nav-section,.app.sidebar-collapsed .nav-badge,.app.sidebar-collapsed .theme-label{display:none}
+.app.sidebar-collapsed .sidebar-logo,.app.sidebar-collapsed .nav-item,.app.sidebar-collapsed .theme-toggle{justify-content:center}
+.sidebar-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-zh);font-size:16px;color:#fff;font-weight:500;flex-shrink:0}
+.logo-text{font-size:14px;font-weight:600;color:var(--sidebar-active);letter-spacing:-0.01em}
+.logo-sub{font-size:11px;color:var(--sidebar-text);margin-top:1px}
+.sidebar-nav{flex:1;padding:12px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--sidebar-text);padding:12px 8px 4px;opacity:0.6}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);color:var(--sidebar-text);font-size:13.5px;font-weight:400;cursor:pointer;transition:all var(--transition);position:relative}
+.nav-item:hover{background:var(--sidebar-hover);color:rgba(255,255,255,0.75)}
+.nav-item.active{background:transparent;color:var(--sidebar-active);font-weight:600}
+.nav-item.active::before{content:'';position:absolute;left:-8px;width:2px;height:20px;background:var(--accent)}
+.nav-item .nav-icon{font-size:16px;width:20px;text-align:center;opacity:0.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center}
+.sidebar-footer{padding:12px 8px;border-top:1px solid rgba(255,255,255,0.06)}
+.theme-toggle{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius-sm);color:var(--sidebar-text);font-size:13px;cursor:pointer;width:100%;transition:all var(--transition)}
+.theme-toggle:hover{background:var(--sidebar-hover);color:rgba(255,255,255,0.7)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.topbar{height:68px;display:flex;align-items:center;padding:0 28px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--bg2) 88%,transparent);backdrop-filter:blur(18px);gap:12px;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text)}
+.level-progress{flex:1;max-width:360px;margin-left:18px}
+.level-progress-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.level-track{height:3px;background:var(--border);overflow:hidden}
+.level-fill{height:100%;background:linear-gradient(90deg,var(--accent),#f0b429);transition:width .5s ease}
+.topbar-search{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;height:34px;min-width:240px}
+.topbar-search input{background:none;border:none;outline:none;color:var(--text);font-size:13.5px;width:100%}
+.topbar-search input::placeholder{color:var(--text3)}
+.topbar-search .search-icon{color:var(--text3);font-size:14px}
+.topbar-actions{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;cursor:pointer;transition:all var(--transition);white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid transparent}
+.btn-primary:hover{background:var(--accent2)}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg);border-color:var(--border2)}
+.btn-ghost{color:var(--text2);padding:7px 10px}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:34px clamp(18px,3vw,42px)}
+.page{display:none}
+.page.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:none}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:border-color var(--transition)}
+.stat-card:hover{border-color:var(--text3)}
+.stat-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.stat-value{font-size:28px;font-weight:600;line-height:1;color:var(--text);margin-bottom:4px;letter-spacing:-0.02em}
+.stat-label{font-size:12.5px;color:var(--text2);font-weight:400}
+.stat-change{font-size:11px;color:var(--green);margin-top:4px;font-weight:500}
+
+/* HSK BADGES */
+.hsk{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.02em}
+.hsk-1{background:#e8f5e9;color:#2e7d32}[data-theme="dark"] .hsk-1{background:rgba(46,125,50,0.2);color:#66bb6a}
+.hsk-2{background:#e3f2fd;color:#1565c0}[data-theme="dark"] .hsk-2{background:rgba(21,101,192,0.2);color:#64b5f6}
+.hsk-3{background:#fff3e0;color:#e65100}[data-theme="dark"] .hsk-3{background:rgba(230,81,0,0.2);color:#ffa726}
+.hsk-4{background:#f3e5f5;color:#6a1b9a}[data-theme="dark"] .hsk-4{background:rgba(106,27,154,0.2);color:#ba68c8}
+.hsk-5{background:#fce4ec;color:#880e4f}[data-theme="dark"] .hsk-5{background:rgba(136,14,79,0.2);color:#f48fb1}
+.hsk-6{background:#fafafa;color:#212121;border:1px solid #e0e0e0}[data-theme="dark"] .hsk-6{background:rgba(255,255,255,0.08);color:#e0e0e0;border-color:rgba(255,255,255,0.15)}
+
+/* TAG */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.status-picker{display:flex;align-items:center;gap:7px;padding:2px}
+.status-dot{width:11px;height:11px;border:1px solid var(--text3);border-radius:50%;padding:0;position:relative;transition:all var(--transition)}
+.status-dot:hover{transform:scale(1.25)}
+.status-dot.planned{border-color:#8b8b8b}.status-dot.learning{border-color:var(--yellow)}.status-dot.learned{border-color:var(--green)}
+.status-dot.active.planned{background:#8b8b8b;box-shadow:0 0 0 3px rgba(120,120,120,.12)}
+.status-dot.active.learning{background:var(--yellow);box-shadow:0 0 0 3px var(--yellow-bg)}
+.status-dot.active.learned{background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+
+/* WORD CARD */
+.words-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.word-card,.grammar-card{background:var(--bg2);border:1px solid var(--border);border-left:4px solid var(--text3);border-radius:var(--radius);padding:22px;cursor:pointer;transition:border-color var(--transition),background var(--transition);position:relative;overflow:hidden}
+.word-card:hover,.grammar-card:hover{border-color:var(--text3)}
+.word-card.state-learning,.grammar-card.state-learning{border-left-color:var(--yellow);background:linear-gradient(90deg,var(--yellow-bg),var(--bg2) 22%)}
+.word-card.state-learned,.grammar-card.state-learned{border-left-color:var(--green);background:linear-gradient(90deg,var(--green-bg),var(--bg2) 22%)}
+.word-card.state-planned,.grammar-card.state-planned{border-left-color:#8b8b8b;background:linear-gradient(90deg,rgba(120,120,120,.07),var(--bg2) 22%)}
+.word-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.word-zh{font-family:var(--font-zh);font-size:26px;font-weight:500;color:var(--text);line-height:1;letter-spacing:0.04em}
+.word-pinyin{font-size:13px;color:var(--accent);margin-top:2px;font-style:italic;font-weight:500}
+.word-translation{font-size:14px;color:var(--text);margin-bottom:10px;font-weight:400}
+.word-example{font-size:12.5px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-sm);padding:8px 10px;margin-bottom:10px;border-left:2px solid var(--border)}
+.word-example-zh{font-family:var(--font-zh);font-weight:400;color:var(--text);margin-bottom:2px}
+.word-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.word-actions{position:absolute;top:12px;right:12px;display:flex;gap:4px;opacity:0;transition:opacity var(--transition)}
+.word-card:hover .word-actions{opacity:1}
+.word-action-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);background:var(--bg);border:1px solid var(--border);color:var(--text2);font-size:13px;cursor:pointer;transition:all var(--transition)}
+.word-action-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.star-btn.starred{color:#f59e0b}
+
+/* TABLE VIEW */
+.words-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.words-table th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg)}
+.words-table td{padding:12px 14px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.words-table tr:hover td{background:var(--bg3)}
+.words-table .zh-cell{font-family:var(--font-zh);font-size:18px;font-weight:500}
+.words-table .pinyin-cell{color:var(--accent);font-style:italic;font-weight:500}
+
+/* FILTERS BAR */
+.filters-bar{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.filter-select{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text);outline:none;cursor:pointer;transition:border-color var(--transition)}
+.filter-select:focus{border-color:var(--accent)}
+.view-toggle{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:2px;gap:2px}
+.view-btn{padding:5px 10px;border-radius:4px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all var(--transition)}
+.view-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,14,12,0.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);transform:translateY(12px) scale(0.98);transition:transform 0.2s cubic-bezier(0.4,0,0.2,1)}
+.modal-overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:17px;font-weight:600;color:var(--text)}
+.modal-close{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);color:var(--text2);font-size:18px;cursor:pointer;transition:all var(--transition)}
+.modal-close:hover{background:var(--bg3);color:var(--text)}
+.modal-body{padding:0 24px 24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.02em;text-transform:uppercase}
+.form-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);outline:none;transition:border-color var(--transition);font-size:14px}
+.form-input:focus{border-color:var(--accent);background:var(--bg2)}
+.form-input.zh-input{font-family:var(--font-zh);font-size:18px}
+.form-select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);outline:none;cursor:pointer;font-size:14px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239c9590'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.form-textarea{resize:vertical;min-height:70px;line-height:1.5}
+.form-divider{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0}
+.form-section-title{grid-column:1/-1;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding-top:4px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* GRAPH */
+#graph-container{width:100%;height:100%;background:#05070a;border:0;border-radius:0;position:relative;overflow:hidden;background-image:radial-gradient(circle at 50% 50%,rgba(19,45,68,.45),transparent 60%),linear-gradient(rgba(80,140,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(80,140,220,.05) 1px,transparent 1px);background-size:auto,32px 32px,32px 32px}
+.app.graph-mode .content{padding:0;background:#05070a;overflow:hidden}
+.app.graph-mode #page-graph{height:100%}
+.app.graph-mode #page-graph>.section-header{display:none}
+.graph-search-wrap{position:relative}
+.graph-search-results{position:absolute;top:40px;left:0;width:280px;max-height:320px;overflow:auto;background:#0b111a;border:1px solid #33415c;display:none}
+.graph-search-results.open{display:block}
+.graph-search-item{width:100%;display:grid;grid-template-columns:55px 1fr;gap:9px;padding:9px 11px;text-align:left;color:#dff8ff;border-bottom:1px solid #1c2939}
+.graph-search-item:hover{background:#132335}
+.graph-zone-label{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;fill:#7189a8}
+.graph-toolbar{position:absolute;top:12px;left:12px;display:flex;gap:6px;z-index:10}
+.graph-btn{background:rgba(8,11,16,.85);border:1px solid #33415c;border-radius:2px;padding:7px 11px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:#91a7c7;cursor:pointer;transition:all var(--transition)}
+.graph-btn:hover,.graph-btn.active{border-color:#4dd8ff;color:#dff8ff;box-shadow:0 0 14px rgba(77,216,255,.2)}
+.pinyin-candidates{display:grid;gap:6px;margin-top:8px}
+.candidate-item{width:100%;display:grid;grid-template-columns:70px 1fr auto;gap:10px;text-align:left;padding:10px 12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);border-radius:var(--radius-sm)}
+.candidate-item:hover{border-color:var(--accent);background:var(--accent-bg)}
+.candidate-zh{font-family:var(--font-zh);font-size:20px}.candidate-pinyin{color:var(--accent);font-size:12px}.candidate-meaning{color:var(--text2);font-size:12px}
+.graph-link{stroke-dasharray:5 7;animation:dataFlow 4s linear infinite}
+@keyframes dataFlow{to{stroke-dashoffset:-24}}
+.node-tooltip{position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--card-shadow);pointer-events:none;z-index:20;min-width:200px;max-width:280px;opacity:0;transition:opacity 0.15s}
+.node-tooltip.visible{opacity:1}
+.tooltip-zh{font-family:var(--font-zh);font-size:24px;font-weight:500;color:var(--text);margin-bottom:2px}
+.tooltip-pinyin{font-size:13px;color:var(--accent);font-style:italic;margin-bottom:4px}
+.tooltip-trans{font-size:13px;color:var(--text2)}
+
+/* GRAMMAR */
+.grammar-pattern{font-family:var(--font-zh);font-size:22px;color:var(--accent);font-weight:500;margin-bottom:6px;letter-spacing:0.08em}
+.grammar-meaning{font-size:16px;font-weight:500;color:var(--text);margin-bottom:4px}
+.grammar-explanation{font-size:13.5px;color:var(--text2);margin-bottom:14px;line-height:1.7}
+.grammar-example-box{background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;border-left:3px solid var(--accent)}
+.grammar-example-zh{font-family:var(--font-zh);font-size:16px;color:var(--text);margin-bottom:2px}
+.grammar-example-pinyin{font-size:12px;color:var(--accent);font-style:italic;margin-bottom:2px}
+.grammar-example-es{font-size:13px;color:var(--text2)}
+.grammar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+
+/* RECOMMENDATIONS */
+.rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:flex-start;gap:14px;transition:all var(--transition)}
+.rec-card:hover{border-color:rgba(201,80,10,0.2);transform:translateY(-1px)}
+.rec-zh-big{font-family:var(--font-zh);font-size:32px;font-weight:500;color:var(--text);line-height:1;min-width:56px;text-align:center;padding-top:4px}
+.rec-body{flex:1}
+.rec-pinyin{font-size:13px;color:var(--accent);font-style:italic;font-weight:500;margin-bottom:2px}
+.rec-translation{font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px}
+.rec-reason{font-size:12.5px;color:var(--text2);background:var(--bg3);padding:6px 10px;border-radius:var(--radius-sm)}
+.rec-add-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);background:var(--accent-bg);color:var(--accent);font-size:18px;cursor:pointer;transition:all var(--transition);flex-shrink:0;margin-top:4px}
+.rec-add-btn:hover{background:var(--accent);color:#fff}
+
+/* ACTIVITY CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(52,1fr);gap:2px;width:100%}
+.cal-cell{aspect-ratio:1;border-radius:2px;background:var(--bg3);transition:background var(--transition)}
+.cal-cell.l1{background:rgba(201,80,10,0.2)}
+.cal-cell.l2{background:rgba(201,80,10,0.45)}
+.cal-cell.l3{background:rgba(201,80,10,0.7)}
+.cal-cell.l4{background:var(--accent)}
+
+/* REVIEW MODAL */
+.review-card-front{text-align:center;padding:40px 20px}
+.review-zh{font-family:var(--font-zh);font-size:56px;font-weight:500;color:var(--text);margin-bottom:8px;letter-spacing:0.06em}
+.review-pinyin{font-size:18px;color:var(--accent);font-style:italic}
+.review-answer{display:none;text-align:center;padding-bottom:20px}
+.review-answer.show{display:block}
+.review-btns{display:flex;gap:10px;justify-content:center;margin-top:20px}
+.review-btn{padding:10px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all var(--transition);border:none}
+.review-easy{background:var(--green);color:#fff}
+.review-medium{background:var(--yellow);color:#fff}
+.review-hard{background:var(--red);color:#fff}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:12px}
+.empty-icon{font-size:48px;margin-bottom:4px}
+.empty-title{font-size:16px;font-weight:600;color:var(--text)}
+.empty-desc{font-size:13.5px;color:var(--text2);max-width:320px;line-height:1.7}
+
+/* SECTION HEADERS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-size:17px;font-weight:600;color:var(--text)}
+.section-sub{font-size:13px;color:var(--text2);margin-top:2px}
+h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(--text);margin-bottom:6px;letter-spacing:-0.03em}
+.page-desc{font-size:14px;color:var(--text2);margin-bottom:24px}
+
+/* FAB */
+.fab{position:fixed;bottom:28px;right:28px;width:50px;height:50px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 16px rgba(201,80,10,0.4);cursor:pointer;transition:all var(--transition);z-index:100;border:none}
+.fab:hover{background:var(--accent2);transform:scale(1.08);box-shadow:0 6px 24px rgba(201,80,10,0.5)}
+
+/* IMPORT/EXPORT */
+.io-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:flex;align-items:flex-start;gap:16px}
+.io-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.io-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px}
+.io-desc{font-size:13px;color:var(--text2);margin-bottom:14px}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--text);color:var(--bg2);padding:10px 18px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.25s ease;pointer-events:all}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* REVIEW PROGRESS */
+.progress-bar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease}
+
+/* RELATIONSHIP TYPE */
+.rel-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
+.rel-synonym{background:var(--green-bg);color:var(--green)}
+.rel-antonym{background:var(--red-bg);color:var(--red)}
+.rel-family{background:var(--blue-bg);color:var(--blue)}
+.rel-theme{background:var(--purple-bg);color:var(--purple)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+.sync-status{display:flex;align-items:center;gap:7px;color:var(--text3);font-size:11px;white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 4px var(--yellow-bg)}
+.sync-status.online .sync-dot{background:var(--green);box-shadow:0 0 0 4px var(--green-bg)}
+.sync-status.error .sync-dot{background:var(--red);box-shadow:0 0 0 4px var(--red-bg)}
+
+@media (max-width:900px){
+  html,body{overflow:auto}
+  .app{height:auto;min-height:100vh;display:block}
+  .sidebar{width:100%;min-width:0;height:auto;position:sticky;top:0;z-index:50}
+  .sidebar-logo,.sidebar-footer,.nav-section{display:none}
+  .sidebar-nav{padding:8px;display:flex;flex-direction:row;overflow-x:auto}
+  .nav-item{flex:0 0 auto}
+  .nav-item:nth-of-type(n+6){display:none}
+  .main{overflow:visible}
+  .topbar{position:sticky;top:50px;z-index:40;padding:0 14px;height:60px}
+  .topbar-title,.sync-status,.topbar-actions .btn-secondary{display:none}
+  .topbar-search{min-width:0;flex:1}
+  .content{overflow:visible;padding:22px 14px 90px}
+  .section-header{align-items:flex-start;gap:12px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  #page-dashboard>div[style*="grid-template-columns:1fr 1fr"],#page-import-export>div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  .words-grid,.grammar-grid{grid-template-columns:1fr}
+  .fab{bottom:18px;right:18px}
+}
+@media (max-width:560px){
+  .topbar-actions .btn-primary{font-size:0;padding:9px 13px}
+  .topbar-actions .btn-primary::after{content:'+';font-size:20px}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-card{padding:15px}
+  .stat-value{font-size:23px}
+  .modal{height:100%;max-height:100%;border-radius:0}
+  .form-grid{grid-template-columns:1fr}
+  .form-group{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">汉</div>
+    <div class="logo-copy">
+      <div class="logo-text">漢字 Vault</div>
+      <div class="logo-sub">Tu vocabulario</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">◈</span><span class="nav-label">Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('dictionary')">
+      <span class="nav-icon">字</span><span class="nav-label">Mi Diccionario</span>
+      <span class="nav-badge" id="nav-word-count">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('grammar')">
+      <span class="nav-icon">句</span><span class="nav-label">Frases</span>
+      <span class="nav-badge" id="nav-grammar-count">0</span>
+    </div>
+    <div class="nav-section">Explorar</div>
+    <div class="nav-item" onclick="showPage('graph')">
+      <span class="nav-icon">◎</span><span class="nav-label">Mapa de Conocimiento</span>
+    </div>
+    <div class="nav-item" onclick="showPage('recommendations')">
+      <span class="nav-icon">✦</span><span class="nav-label">Recomendaciones</span>
+    </div>
+    <div class="nav-section">Práctica</div>
+    <div class="nav-item" onclick="showPage('review')">
+      <span class="nav-icon">↻</span><span class="nav-label">Repasar</span>
+    </div>
+    <div class="nav-item" onclick="showPage('categories')">
+      <span class="nav-icon">⊞</span><span class="nav-label">Categorías</span>
+    </div>
+    <div class="nav-section">Datos</div>
+    <div class="nav-item" onclick="showPage('import-export')">
+      <span class="nav-icon">⇅</span><span class="nav-label">Importar / Exportar</span>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="toggleSidebar()">
+      <span class="nav-icon" id="collapse-icon">«</span>
+      <span class="theme-label">Contraer menú</span>
+    </button>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <span class="nav-icon" id="theme-icon">◑</span>
+      <span class="theme-label" id="theme-label">Tema oscuro</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="level-progress">
+      <div class="level-progress-top"><span id="level-label">Nivel inicial</span><span id="level-percent">0%</span></div>
+      <div class="level-track"><div class="level-fill" id="level-fill"></div></div>
+    </div>
+    <div class="topbar-search">
+      <span class="search-icon">⌕</span>
+      <input type="text" placeholder="Buscar palabras, pinyin, traducción..." id="global-search" oninput="handleGlobalSearch(this.value)">
+    </div>
+    <div class="topbar-actions">
+      <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-label">Guardado local</span></div>
+      <button class="btn btn-secondary" onclick="showPage('review')">↻ Repasar</button>
+      <button class="btn btn-primary" onclick="openAddWord()">+ Añadir</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <h2 class="page-title">Bienvenido de nuevo 👋</h2>
+      <p class="page-desc">Tu progreso en chino mandarín, todo en un lugar.</p>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+        <div class="card">
+          <div class="section-header" style="margin-bottom:14px">
+            <div>
+              <div class="section-title" style="font-size:14px">Últimas palabras</div>
+            </div>
+            <button class="btn btn-ghost" style="font-size:12px" onclick="showPage('dictionary')">Ver todo →</button>
+          </div>
+          <div id="recent-words-list"></div>
+        </div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:14px">
+            <div class="section-title" style="font-size:14px">Por nivel HSK</div>
+          </div>
+          <div id="hsk-distribution"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="font-size:14px;margin-bottom:14px">Actividad anual</div>
+        <div class="cal-grid" id="activity-calendar"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--text3)">
+          <span>Menos</span>
+          <div style="width:12px;height:12px;border-radius:2px;background:var(--bg3)"></div>
+          <div style="width:12px;height:12px;border-radius:2px" class="cal-cell l1"></div>
+          <div style="width:12px;height:12px;border-radius:2px" class="cal-cell l2"></div>
+          <div style="width:12px;height:12px;border-radius:2px" class="cal-cell l3"></div>
+          <div style="width:12px;height:12px;border-radius:2px" class="cal-cell l4"></div>
+          <span>Más</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DICTIONARY -->
+    <div class="page" id="page-dictionary">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Mi Diccionario</h2>
+          <p class="page-desc" style="margin:0">Todo tu vocabulario en un lugar.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddWord()">+ Añadir palabra</button>
+      </div>
+      <div class="filters-bar">
+        <div style="flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px">
+          <span style="color:var(--text3)">⌕</span>
+          <input type="text" placeholder="Buscar..." id="dict-search" oninput="renderDictionary()" style="background:none;border:none;outline:none;color:var(--text);font-size:13.5px;width:100%">
+        </div>
+        <select class="filter-select" id="filter-category" onchange="renderDictionary()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select class="filter-select" id="filter-hsk" onchange="renderDictionary()">
+          <option value="">Todos los niveles HSK</option>
+          <option value="1">HSK 1</option>
+          <option value="2">HSK 2</option>
+          <option value="3">HSK 3</option>
+          <option value="4">HSK 4</option>
+          <option value="5">HSK 5</option>
+          <option value="6">HSK 6</option>
+        </select>
+        <select class="filter-select" id="filter-status" onchange="renderDictionary()">
+          <option value="">Todos los estados</option>
+          <option value="learning">En proceso</option>
+          <option value="learned">Aprendido</option>
+          <option value="planned">Por conocer</option>
+        </select>
+        <select class="filter-select" id="sort-by" onchange="renderDictionary()">
+          <option value="date-desc">Más recientes</option>
+          <option value="date-asc">Más antiguas</option>
+          <option value="zh-asc">A→Z (chino)</option>
+          <option value="es-asc">A→Z (español)</option>
+        </select>
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-cards-btn" onclick="setView('cards')">⊞ Tarjetas</button>
+          <button class="view-btn" id="view-table-btn" onclick="setView('table')">☰ Tabla</button>
+        </div>
+      </div>
+      <div id="dictionary-content"></div>
+    </div>
+
+    <!-- GRAMMAR -->
+    <div class="page" id="page-grammar">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Frases y estructuras</h2>
+          <p class="page-desc" style="margin:0">Oraciones, expresiones y patrones completos.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddGrammar()">+ Añadir frase</button>
+      </div>
+      <div class="filters-bar">
+        <input class="form-input" id="phrase-search" oninput="renderGrammar()" placeholder="Buscar frase, pinyin o traducción..." style="flex:1;min-width:240px">
+        <select class="filter-select" id="phrase-status" onchange="renderGrammar()">
+          <option value="">Todos los estados</option>
+          <option value="learning">En proceso</option>
+          <option value="learned">Aprendido</option>
+          <option value="planned">Por conocer</option>
+        </select>
+      </div>
+      <div class="grammar-grid" id="grammar-grid"></div>
+    </div>
+
+    <!-- GRAPH -->
+    <div class="page" id="page-graph">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Mapa de Conocimiento</h2>
+          <p class="page-desc" style="margin:0">Visualiza las conexiones entre tus palabras.</p>
+        </div>
+      </div>
+      <div id="graph-container">
+        <div class="graph-toolbar">
+          <button class="graph-btn" onclick="resetZoom()">↺ Reset</button>
+          <button class="graph-btn active" id="graph-lang-zh" onclick="setGraphLanguage('zh')">汉字</button>
+          <button class="graph-btn" id="graph-lang-pinyin" onclick="setGraphLanguage('pinyin')">Pinyin</button>
+          <div class="graph-search-wrap">
+            <input type="text" placeholder="Buscar hanzi, pinyin o significado..." id="graph-search" oninput="suggestGraphMatches(this.value)" autocomplete="off" style="background:#0b111a;border:1px solid #33415c;border-radius:2px;padding:7px 10px;font-size:12px;color:#dff8ff;outline:none;width:280px">
+            <div class="graph-search-results" id="graph-search-results"></div>
+          </div>
+        </div>
+        <div class="node-tooltip" id="node-tooltip">
+          <div class="tooltip-zh" id="tt-zh"></div>
+          <div class="tooltip-pinyin" id="tt-pinyin"></div>
+          <div class="tooltip-trans" id="tt-trans"></div>
+          <div style="margin-top:8px" id="tt-relations"></div>
+        </div>
+        <svg id="graph-svg" style="width:100%;height:100%"></svg>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="page" id="page-recommendations">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Recomendaciones</h2>
+          <p class="page-desc" style="margin:0">Palabras sugeridas basadas en lo que ya sabes.</p>
+        </div>
+        <button class="btn btn-secondary" onclick="generateRecommendations()">↻ Actualizar</button>
+      </div>
+      <div id="rec-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px"></div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="page" id="page-review">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Sesión de Repaso</h2>
+          <p class="page-desc" style="margin:0">Sistema de repetición espaciada.</p>
+        </div>
+      </div>
+      <div id="review-content"></div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="page" id="page-categories">
+      <div class="section-header">
+        <div>
+          <h2 class="page-title">Categorías</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openAddCategory()">+ Nueva categoría</button>
+      </div>
+      <div id="categories-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
+    </div>
+
+    <!-- IMPORT/EXPORT -->
+    <div class="page" id="page-import-export">
+      <h2 class="page-title">Importar / Exportar</h2>
+      <p class="page-desc">Haz copias de seguridad o migra tus datos.</p>
+      <div class="card" style="margin-bottom:18px;display:flex;align-items:center;gap:14px">
+        <div class="io-icon" style="background:var(--green-bg);color:var(--green)">☁</div>
+        <div>
+          <div class="io-title">Persistencia compartida</div>
+          <div class="io-desc" style="margin:0">Abre la aplicación mediante <strong>server.py</strong> para guardar en la base compartida y verla desde otros dispositivos de tu red. Si abres el HTML directamente, seguirá funcionando con guardado local.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="io-card">
+          <div class="io-icon" style="background:var(--green-bg);color:var(--green)">↓</div>
+          <div style="flex:1">
+            <div class="io-title">Exportar JSON</div>
+            <div class="io-desc">Exporta todo tu vocabulario y estructuras en formato JSON. Ideal para respaldos completos.</div>
+            <button class="btn btn-secondary" onclick="exportJSON()">Exportar JSON</button>
+          </div>
+        </div>
+        <div class="io-card">
+          <div class="io-icon" style="background:var(--blue-bg);color:var(--blue)">↓</div>
+          <div style="flex:1">
+            <div class="io-title">Exportar CSV</div>
+            <div class="io-desc">Exporta solo el diccionario en formato CSV compatible con Excel y Google Sheets.</div>
+            <button class="btn btn-secondary" onclick="exportCSV()">Exportar CSV</button>
+          </div>
+        </div>
+        <div class="io-card">
+          <div class="io-icon" style="background:var(--accent-bg);color:var(--accent)">↑</div>
+          <div style="flex:1">
+            <div class="io-title">Importar JSON</div>
+            <div class="io-desc">Restaura un backup o importa datos desde otra instancia de 漢字 Vault.</div>
+            <button class="btn btn-secondary" onclick="document.getElementById('import-json').click()">Importar JSON</button>
+            <input type="file" id="import-json" accept=".json" style="display:none" onchange="importJSON(this)">
+          </div>
+        </div>
+        <div class="io-card">
+          <div class="io-icon" style="background:var(--purple-bg);color:var(--purple)">↑</div>
+          <div style="flex:1">
+            <div class="io-title">Importar CSV</div>
+            <div class="io-desc">Importa vocabulario desde un archivo CSV. Columnas: chino, pinyin, español, categoría, hsk.</div>
+            <button class="btn btn-secondary" onclick="document.getElementById('import-csv').click()">Importar CSV</button>
+            <input type="file" id="import-csv" accept=".csv" style="display:none" onchange="importCSV(this)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab" onclick="openAddWord()" title="Añadir palabra">+</button>
+
+<!-- ADD WORD MODAL -->
+<div class="modal-overlay" id="modal-add-word">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-word-title">Nueva Palabra</div>
+      <button class="modal-close" onclick="closeModal('modal-add-word')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Palabra en chino *</label>
+          <input class="form-input zh-input" id="word-zh" placeholder="中国" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pinyin *</label>
+          <input class="form-input" id="word-pinyin" placeholder="Escribe sin tonos, por ejemplo: guo" type="text" oninput="suggestPinyinCandidates(this.value)">
+          <div class="pinyin-candidates" id="pinyin-candidates"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Traducción *</label>
+          <input class="form-input" id="word-translation" placeholder="China" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select class="form-select form-input" id="word-category">
+            <option value="">Sin categoría</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nivel HSK</label>
+          <select class="form-select form-input" id="word-hsk">
+            <option value="">-</option>
+            <option value="1">HSK 1</option>
+            <option value="2">HSK 2</option>
+            <option value="3">HSK 3</option>
+            <option value="4">HSK 4</option>
+            <option value="5">HSK 5</option>
+            <option value="6">HSK 6</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <select class="form-select form-input" id="word-status">
+            <option value="learning">En proceso</option>
+            <option value="learned">Aprendido</option>
+            <option value="planned">Por conocer</option>
+          </select>
+        </div>
+        <div class="form-divider"></div>
+        <div class="form-section-title">Información adicional (opcional)</div>
+        <div class="form-group form-full">
+          <label class="form-label">Ejemplo en chino</label>
+          <input class="form-input zh-input" id="word-example-zh" placeholder="我来自中国。" type="text">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Traducción del ejemplo</label>
+          <input class="form-input" id="word-example-es" placeholder="Vengo de China." type="text">
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Notas personales</label>
+          <textarea class="form-input form-textarea" id="word-notes" placeholder="Contexto, trucos para recordarla..."></textarea>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Etiquetas (separadas por coma)</label>
+          <input class="form-input" id="word-tags" placeholder="viajes, geografía" type="text">
+        </div>
+        <input type="hidden" id="word-edit-id">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-word')">Cancelar</button>
+      <button class="btn btn-secondary" onclick="saveWord(true)">Guardar y añadir otra</button>
+      <button class="btn btn-primary" onclick="saveWord()">Guardar palabra</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PHRASE MODAL -->
+<div class="modal-overlay" id="modal-add-grammar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nueva frase o estructura</div>
+      <button class="modal-close" onclick="closeModal('modal-add-grammar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Frase en chino *</label>
+          <input class="form-input zh-input" id="gram-pattern" placeholder="天气越来越热了。" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Traducción al español *</label>
+          <input class="form-input" id="gram-meaning" placeholder="Cada vez más..." type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nivel HSK</label>
+          <select class="form-select form-input" id="gram-hsk">
+            <option value="">-</option>
+            <option value="1">HSK 1</option>
+            <option value="2">HSK 2</option>
+            <option value="3">HSK 3</option>
+            <option value="4">HSK 4</option>
+            <option value="5">HSK 5</option>
+            <option value="6">HSK 6</option>
+          </select>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Notas</label>
+          <textarea class="form-input form-textarea" id="gram-explanation" placeholder="Contexto, estructura o forma de uso..."></textarea>
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Ejemplo en chino</label>
+          <input class="form-input zh-input" id="gram-example-zh" placeholder="天气越来越热了。" type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pinyin del ejemplo</label>
+          <input class="form-input" id="gram-example-pinyin" placeholder="Tiānqì yuèláiyuè rè le." type="text">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Traducción del ejemplo</label>
+          <input class="form-input" id="gram-example-es" placeholder="Hace cada vez más calor." type="text">
+        </div>
+        <input type="hidden" id="gram-edit-id">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-grammar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGrammar()">Guardar frase</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CATEGORY MODAL -->
+<div class="modal-overlay" id="modal-add-category">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Nueva Categoría</div>
+      <button class="modal-close" onclick="closeModal('modal-add-category')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Nombre de la categoría *</label>
+        <input class="form-input" id="cat-name" placeholder="Comida, Viajes..." type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Emoji (opcional)</label>
+        <input class="form-input" id="cat-emoji" placeholder="🍜" type="text" maxlength="4">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-category')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCategory()">Crear categoría</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="seed-data.js"></script>
+<script>
+// ============================================================
+// STATE / DATABASE (shared API with local browser fallback)
+// ============================================================
+let DB = {
+  version: 2,
+  words: [],
+  grammar: [],
+  categories: [],
+  relations: [],
+};
+
+let saveTimer;
+let cloudEnabled = location.protocol === 'http:' || location.protocol === 'https:';
+
+function saveDB() {
+  DB.version = 2;
+  localStorage.setItem('hanzivault_db', JSON.stringify(DB));
+  setSyncStatus(cloudEnabled ? 'saving' : 'local');
+  if (!cloudEnabled) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const response = await fetch('/api/db', {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(DB)
+      });
+      if (!response.ok) throw new Error('No se pudo guardar');
+      setSyncStatus('online');
+    } catch (error) {
+      setSyncStatus('error');
+    }
+  }, 300);
+}
+
+async function loadDB() {
+  const stored = localStorage.getItem('hanzivault_db');
+  if (stored) {
+    try { DB = JSON.parse(stored); } catch(e) { DB = {words:[],grammar:[],categories:[],relations:[]}; }
+  }
+  if (cloudEnabled) {
+    try {
+      const response = await fetch('/api/db', {cache:'no-store'});
+      if (response.ok) {
+        DB = await response.json();
+        setSyncStatus('online');
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (error) {
+      cloudEnabled = false;
+      setSyncStatus('local');
+    }
+  }
+  // Ensure all arrays exist
+  if (!DB.words) DB.words = [];
+  if (!DB.grammar) DB.grammar = [];
+  if (!DB.categories) DB.categories = [];
+  if (!DB.relations) DB.relations = [];
+  mergeExcelSeed();
+  migratePhrases();
+}
+
+function mergeExcelSeed() {
+  if (typeof EXCEL_SEED === 'undefined' || DB.seedVersion === 4) return;
+  DB.words = DB.words.filter(w => !String(w.id).startsWith('curated-'));
+  const wordKeys = new Set(DB.words.map(w => `${normalizeText(w.zh)}|${normalizeText(w.pinyin)}`));
+  const grammarKeys = new Set(DB.grammar.map(g => normalizeText(g.pattern)));
+  EXCEL_SEED.categories.forEach(c => {
+    if (!DB.categories.some(existing => existing.id === c.id)) DB.categories.push(c);
+  });
+  EXCEL_SEED.words.forEach(w => {
+    const key = `${normalizeText(w.zh)}|${normalizeText(w.pinyin)}`;
+    if (!wordKeys.has(key)) {
+      DB.words.push(w);
+      wordKeys.add(key);
+    }
+  });
+  EXCEL_SEED.grammar.forEach(g => {
+    if (!grammarKeys.has(normalizeText(g.pattern))) DB.grammar.push(g);
+  });
+  DB.seedVersion = 4;
+  saveDB();
+}
+
+function migratePhrases() {
+  if (DB.contentMigrationVersion === 2) return;
+  const remainingWords = [];
+  const phrasePatterns = new Set(DB.grammar.map(g => g.pattern));
+  const lexicalExcelIds = new Set(['excel-0012','excel-0042','excel-0059','excel-0331','excel-0335']);
+  DB.words.forEach(w => {
+    const isWord = String(w.id).startsWith('core-') || lexicalExcelIds.has(w.id);
+    if (isWord) {
+      remainingWords.push(w);
+      return;
+    }
+    if (!phrasePatterns.has(w.zh)) {
+      DB.grammar.push({
+        id:`phrase-${w.id}`, pattern:w.zh, meaning:w.translation, hsk:w.hsk || '',
+        explanation:w.notes || '', exampleZh:w.zh, examplePinyin:w.pinyin,
+        exampleEs:w.translation, category:w.category || '', tags:w.tags || [],
+        status:w.status || 'planned', date:w.date, reviewCount:w.reviewCount || 0,
+        nextReview:w.nextReview
+      });
+      phrasePatterns.add(w.zh);
+    }
+  });
+  DB.words = remainingWords;
+  DB.contentMigrationVersion = 2;
+  saveDB();
+}
+
+function setSyncStatus(state) {
+  const status = document.getElementById('sync-status');
+  const label = document.getElementById('sync-label');
+  if (!status || !label) return;
+  status.className = `sync-status ${state === 'online' ? 'online' : state === 'error' ? 'error' : ''}`;
+  label.textContent = state === 'online' ? 'Sincronizado' : state === 'saving' ? 'Guardando…' : state === 'error' ? 'Sin conexión' : 'Guardado local';
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const pageTitles = {
+  dashboard:'Dashboard',dictionary:'Mi Diccionario',grammar:'Frases y estructuras',
+  graph:'Mapa de Conocimiento',recommendations:'Recomendaciones',review:'Sesión de Repaso',
+  categories:'Categorías','import-export':'Importar / Exportar'
+};
+
+function showPage(id) {
+  document.querySelector('.app').classList.toggle('graph-mode', id === 'graph');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-'+id);
+  if (page) page.classList.add('active');
+  const navItem = [...document.querySelectorAll('.nav-item')].find(n => n.getAttribute('onclick') === `showPage('${id}')`);
+  if (navItem) navItem.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[id] || id;
+  // Page-specific renders
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'dictionary') renderDictionary();
+  if (id === 'grammar') renderGrammar();
+  if (id === 'graph') setTimeout(renderGraph, 100);
+  if (id === 'recommendations') generateRecommendations();
+  if (id === 'review') renderReview();
+  if (id === 'categories') renderCategories();
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+
+function openAddWord(editId) {
+  const el = id => document.getElementById(id);
+  el('modal-word-title').textContent = editId ? 'Editar Palabra' : 'Nueva Palabra';
+  el('word-edit-id').value = editId || '';
+  // Populate categories
+  const catSelect = el('word-category');
+  catSelect.innerHTML = '<option value="">Sin categoría</option>';
+  DB.categories.forEach(c => {
+    catSelect.innerHTML += `<option value="${c.id}">${c.emoji||''} ${c.name}</option>`;
+  });
+  if (editId) {
+    const w = DB.words.find(w => w.id === editId);
+    if (w) {
+      el('word-zh').value = w.zh;
+      el('word-pinyin').value = w.pinyin;
+      el('word-translation').value = w.translation;
+      el('word-category').value = w.category || '';
+      el('word-hsk').value = w.hsk || '';
+      el('word-status').value = w.status || 'learning';
+      el('word-example-zh').value = w.exampleZh || '';
+      el('word-example-es').value = w.exampleEs || '';
+      el('word-notes').value = w.notes || '';
+      el('word-tags').value = (w.tags||[]).join(', ');
+    }
+  } else {
+    ['word-zh','word-pinyin','word-translation','word-example-zh','word-example-es','word-notes','word-tags'].forEach(f => el(f).value = '');
+    el('word-category').value = '';
+    el('word-hsk').value = '';
+    el('word-status').value = 'learning';
+  }
+  el('pinyin-candidates').innerHTML = '';
+  openModal('modal-add-word');
+  setTimeout(() => el('word-zh').focus(), 200);
+}
+
+function openAddGrammar(editId) {
+  const el = id => document.getElementById(id);
+  el('gram-edit-id').value = editId || '';
+  if (editId) {
+    const g = DB.grammar.find(g => g.id === editId);
+    if (g) {
+      el('gram-pattern').value = g.pattern;
+      el('gram-meaning').value = g.meaning;
+      el('gram-hsk').value = g.hsk || '';
+      el('gram-explanation').value = g.explanation || '';
+      el('gram-example-zh').value = g.exampleZh || '';
+      el('gram-example-pinyin').value = g.examplePinyin || '';
+      el('gram-example-es').value = g.exampleEs || '';
+    }
+  } else {
+    ['gram-pattern','gram-meaning','gram-explanation','gram-example-zh','gram-example-pinyin','gram-example-es'].forEach(f => el(f).value = '');
+    el('gram-hsk').value = '';
+  }
+  openModal('modal-add-grammar');
+}
+
+function openAddCategory() {
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-emoji').value = '';
+  openModal('modal-add-category');
+}
+
+// ============================================================
+// SAVE FUNCTIONS
+// ============================================================
+function saveWord(addAnother = false) {
+  const el = id => document.getElementById(id).value.trim();
+  if (!el('word-zh') || !el('word-pinyin') || !el('word-translation')) {
+    showToast('Los campos marcados con * son obligatorios', 'error'); return;
+  }
+  const editId = el('word-edit-id');
+  const word = {
+    id: editId || genId(),
+    zh: el('word-zh'),
+    pinyin: el('word-pinyin'),
+    translation: el('word-translation'),
+    category: el('word-category'),
+    hsk: el('word-hsk'),
+    status: el('word-status') || 'learning',
+    exampleZh: el('word-example-zh'),
+    exampleEs: el('word-example-es'),
+    notes: el('word-notes'),
+    tags: el('word-tags') ? el('word-tags').split(',').map(t=>t.trim()).filter(Boolean) : [],
+    starred: false,
+    difficulty: 0,
+    date: editId ? (DB.words.find(w=>w.id===editId)||{}).date || new Date().toISOString() : new Date().toISOString(),
+    reviewCount: 0,
+    nextReview: new Date().toISOString(),
+  };
+  if (word.status === 'planned') word.nextReview = '2099-01-01T00:00:00.000Z';
+  if (editId) {
+    const idx = DB.words.findIndex(w => w.id === editId);
+    if (idx !== -1) {
+      const old = DB.words[idx];
+      word.starred = old.starred;
+      word.reviewCount = old.reviewCount;
+      if (word.status !== 'planned' && old.status !== 'planned') word.nextReview = old.nextReview;
+      DB.words[idx] = word;
+    }
+  } else {
+    DB.words.unshift(word);
+  }
+  saveDB();
+  closeModal('modal-add-word');
+  updateNavBadges();
+  showToast(editId ? '✓ Palabra actualizada' : '✓ Palabra añadida al diccionario');
+  if (document.getElementById('page-dictionary').classList.contains('active')) renderDictionary();
+  if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+  if (addAnother) openAddWord();
+}
+
+function saveGrammar() {
+  const el = id => document.getElementById(id).value.trim();
+  if (!el('gram-pattern') || !el('gram-meaning')) {
+    showToast('Los campos marcados con * son obligatorios', 'error'); return;
+  }
+  const editId = el('gram-edit-id');
+  const gram = {
+    id: editId || genId(),
+    pattern: el('gram-pattern'),
+    meaning: el('gram-meaning'),
+    hsk: el('gram-hsk'),
+    explanation: el('gram-explanation'),
+    exampleZh: el('gram-example-zh'),
+    examplePinyin: el('gram-example-pinyin'),
+    exampleEs: el('gram-example-es'),
+    status: editId ? (DB.grammar.find(g=>g.id===editId)||{}).status || 'learning' : 'learning',
+    date: new Date().toISOString(),
+  };
+  if (editId) {
+    const idx = DB.grammar.findIndex(g => g.id === editId);
+    if (idx !== -1) DB.grammar[idx] = gram;
+  } else {
+    DB.grammar.unshift(gram);
+  }
+  saveDB();
+  closeModal('modal-add-grammar');
+  updateNavBadges();
+  showToast(editId ? '✓ Estructura actualizada' : '✓ Estructura guardada');
+  renderGrammar();
+}
+
+function saveCategory() {
+  const name = document.getElementById('cat-name').value.trim();
+  const emoji = document.getElementById('cat-emoji').value.trim();
+  if (!name) { showToast('El nombre es obligatorio', 'error'); return; }
+  DB.categories.push({ id: genId(), name, emoji: emoji || '📁' });
+  saveDB();
+  closeModal('modal-add-category');
+  renderCategories();
+  showToast('✓ Categoría creada');
+  // Update category selects
+  populateCategoryFilter();
+}
+
+function deleteWord(id) {
+  if (!confirm('¿Eliminar esta palabra?')) return;
+  DB.words = DB.words.filter(w => w.id !== id);
+  DB.relations = DB.relations.filter(r => r.from !== id && r.to !== id);
+  saveDB();
+  updateNavBadges();
+  renderDictionary();
+  showToast('Palabra eliminada');
+}
+
+function toggleStar(id) {
+  const w = DB.words.find(w => w.id === id);
+  if (w) { w.starred = !w.starred; saveDB(); renderDictionary(); }
+}
+
+function setItemStatus(type, id, status) {
+  const collection = type === 'phrase' ? DB.grammar : DB.words;
+  const item = collection.find(entry => entry.id === id);
+  if (!item) return;
+  item.status = status;
+  item.nextReview = status === 'planned' ? '2099-01-01T00:00:00.000Z' : new Date().toISOString();
+  saveDB();
+  updateNavBadges();
+  if (type === 'phrase') renderGrammar();
+  else renderDictionary();
+}
+
+// ============================================================
+// RENDER: DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const allItems = [...DB.words, ...DB.grammar];
+  const thisWeek = DB.words.filter(w => {
+    const d = new Date(w.date);
+    const now = new Date();
+    const diff = (now - d) / (1000*60*60*24);
+    return diff <= 7;
+  }).length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--accent-bg);color:var(--accent)">字</div>
+      <div class="stat-value">${DB.words.length}</div>
+      <div class="stat-label">Palabras totales</div>
+      <div class="stat-change">+${thisWeek} esta semana</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-bg);color:var(--blue)">法</div>
+      <div class="stat-value">${DB.grammar.length}</div>
+      <div class="stat-label">Frases y estructuras</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--purple-bg);color:var(--purple)">⊞</div>
+      <div class="stat-value">${DB.categories.length}</div>
+      <div class="stat-label">Categorías</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--green-bg);color:var(--green)">★</div>
+      <div class="stat-value">${allItems.filter(item=>item.status==='learned').length}</div>
+      <div class="stat-label">Aprendidas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--blue-bg);color:var(--blue)">＋</div>
+      <div class="stat-value">${allItems.filter(item=>item.status==='planned').length}</div>
+      <div class="stat-label">Por conocer</div>
+    </div>
+  `;
+
+  // Recent words
+  const recent = DB.words.slice(0,6);
+  const recentEl = document.getElementById('recent-words-list');
+  if (recent.length === 0) {
+    recentEl.innerHTML = `<div class="empty-state" style="padding:20px"><div class="empty-icon">字</div><div class="empty-desc">Aún no hay palabras. ¡Añade tu primera!</div></div>`;
+  } else {
+    recentEl.innerHTML = recent.map(w => `
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer" onclick="showPage('dictionary')">
+        <div style="font-family:var(--font-zh);font-size:20px;font-weight:500;width:60px;white-space:nowrap;text-align:center;color:var(--text)">${w.zh}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-style:italic;color:var(--accent)">${w.pinyin}</div>
+          <div style="font-size:12.5px;color:var(--text2)">${w.translation}</div>
+        </div>
+        ${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK${w.hsk}</span>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // HSK distribution
+  const hskCounts = {1:0,2:0,3:0,4:0,5:0,6:0};
+  DB.words.forEach(w => { if (w.hsk) hskCounts[w.hsk]++; });
+  const maxHsk = Math.max(...Object.values(hskCounts), 1);
+  document.getElementById('hsk-distribution').innerHTML = Object.entries(hskCounts).map(([lvl,count]) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span class="hsk hsk-${lvl}" style="min-width:44px;justify-content:center">HSK ${lvl}</span>
+      <div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">
+        <div style="width:${count/maxHsk*100}%;height:100%;background:var(--accent);border-radius:4px;transition:width 0.6s ease"></div>
+      </div>
+      <span style="font-size:12px;color:var(--text2);min-width:20px;text-align:right">${count}</span>
+    </div>
+  `).join('');
+
+  // Activity calendar (simulated)
+  const cal = document.getElementById('activity-calendar');
+  const cells = [];
+  const wordDates = {};
+  DB.words.forEach(w => {
+    const d = new Date(w.date).toDateString();
+    wordDates[d] = (wordDates[d]||0)+1;
+  });
+  for (let i = 0; i < 364; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (363 - i));
+    const count = wordDates[d.toDateString()] || 0;
+    const lvl = count === 0 ? '' : count < 2 ? 'l1' : count < 4 ? 'l2' : count < 7 ? 'l3' : 'l4';
+    cells.push(`<div class="cal-cell ${lvl}" title="${d.toLocaleDateString('es')}: ${count} palabras"></div>`);
+  }
+  cal.innerHTML = cells.join('');
+}
+
+// ============================================================
+// RENDER: DICTIONARY
+// ============================================================
+let currentView = 'cards';
+function setView(v) {
+  currentView = v;
+  document.getElementById('view-cards-btn').classList.toggle('active', v==='cards');
+  document.getElementById('view-table-btn').classList.toggle('active', v==='table');
+  renderDictionary();
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('filter-category');
+  const selected = sel.value;
+  sel.innerHTML = '<option value="">Todas las categorías</option>';
+  DB.categories.forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.emoji||''} ${c.name}</option>`;
+  });
+  sel.value = selected;
+}
+
+function getFilteredWords() {
+  const search = normalizeText((document.getElementById('dict-search')||{value:''}).value);
+  const catFilter = (document.getElementById('filter-category')||{value:''}).value;
+  const hskFilter = (document.getElementById('filter-hsk')||{value:''}).value;
+  const statusFilter = (document.getElementById('filter-status')||{value:''}).value;
+  const sortBy = (document.getElementById('sort-by')||{value:'date-desc'}).value;
+
+  let words = DB.words.filter(w => {
+    const searchable = normalizeText([
+      w.zh, w.pinyin, w.translation, w.notes, ...(w.tags||[])
+    ].filter(Boolean).join(' '));
+    const matchSearch = !search || searchable.includes(search);
+    const matchCat = !catFilter || w.category === catFilter;
+    const matchHsk = !hskFilter || w.hsk === hskFilter;
+    const matchStatus = !statusFilter || (w.status || 'learning') === statusFilter;
+    return matchSearch && matchCat && matchHsk && matchStatus;
+  });
+
+  words.sort((a,b) => {
+    if (sortBy === 'date-desc') return new Date(b.date) - new Date(a.date);
+    if (sortBy === 'date-asc') return new Date(a.date) - new Date(b.date);
+    if (sortBy === 'zh-asc') return a.zh.localeCompare(b.zh);
+    if (sortBy === 'es-asc') return a.translation.localeCompare(b.translation);
+    return 0;
+  });
+  return words;
+}
+
+function renderDictionary() {
+  populateCategoryFilter();
+  const words = getFilteredWords();
+  const container = document.getElementById('dictionary-content');
+
+  if (words.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📖</div><div class="empty-title">No se encontraron palabras</div><div class="empty-desc">Prueba a cambiar los filtros o añade nuevas palabras con el botón "+".</div></div>`;
+    return;
+  }
+
+  if (currentView === 'cards') {
+    container.innerHTML = `<div class="words-grid">${words.map(wordCardHTML).join('')}</div>`;
+  } else {
+    container.innerHTML = `
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="words-table">
+          <thead><tr>
+            <th>Chino</th><th>Pinyin</th><th>Traducción</th><th>Categoría</th><th>HSK</th><th>Fecha</th><th></th>
+          </tr></thead>
+          <tbody>${words.map(wordRowHTML).join('')}</tbody>
+        </table>
+      </div>`;
+  }
+}
+
+function wordCardHTML(w) {
+  const cat = DB.categories.find(c => c.id === w.category);
+  return `
+    <div class="word-card state-${w.status || 'learning'}" onclick="openAddWord('${w.id}')">
+      <div class="word-card-top">
+        <div class="word-zh">${w.zh}</div>
+        <div class="word-actions" onclick="event.stopPropagation()">
+          <button class="word-action-btn star-btn ${w.starred?'starred':''}" onclick="toggleStar('${w.id}')" title="Favorito">★</button>
+          <button class="word-action-btn" onclick="openAddWord('${w.id}')" title="Editar">✎</button>
+          <button class="word-action-btn" onclick="deleteWord('${w.id}')" title="Eliminar" style="color:var(--red)">✕</button>
+        </div>
+      </div>
+      <div class="word-translation">${w.translation}</div>
+      <div class="word-pinyin" style="margin-bottom:10px">${w.pinyin}</div>
+      ${w.exampleZh ? `<div class="word-example"><div class="word-example-zh">${w.exampleZh}</div><div style="font-size:12px;color:var(--text2)">${w.exampleEs||''}</div></div>` : ''}
+      <div class="word-footer">
+        ${statusPickerHTML('word', w.id, w.status)}
+        ${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK ${w.hsk}</span>` : ''}
+        ${cat ? `<span class="tag">${cat.emoji||''} ${cat.name}</span>` : ''}
+        ${(w.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+        ${w.starred ? `<span style="color:#f59e0b;font-size:12px;margin-left:auto">★ Favorito</span>` : ''}
+      </div>
+    </div>`;
+}
+
+function wordRowHTML(w) {
+  const cat = DB.categories.find(c => c.id === w.category);
+  return `
+    <tr>
+      <td class="zh-cell">${w.zh}</td>
+      <td class="pinyin-cell">${w.pinyin}</td>
+      <td>${w.translation}</td>
+      <td onclick="event.stopPropagation()">${statusPickerHTML('word', w.id, w.status)} ${cat ? `<span class="tag">${cat.emoji||''} ${cat.name}</span>` : ''}</td>
+      <td>${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK ${w.hsk}</span>` : '—'}</td>
+      <td style="color:var(--text2);font-size:12px">${new Date(w.date).toLocaleDateString('es')}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:4px">
+          <button class="word-action-btn" onclick="openAddWord('${w.id}')" title="Editar">✎</button>
+          <button class="word-action-btn" onclick="deleteWord('${w.id}')" style="color:var(--red)">✕</button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+// ============================================================
+// RENDER: GRAMMAR
+// ============================================================
+function renderGrammar() {
+  const grid = document.getElementById('grammar-grid');
+  const query = normalizeText((document.getElementById('phrase-search') || {value:''}).value);
+  const status = (document.getElementById('phrase-status') || {value:''}).value;
+  const phrases = DB.grammar.filter(g => {
+    const searchable = normalizeText(`${g.pattern} ${g.meaning} ${g.examplePinyin || ''} ${g.explanation || ''}`);
+    return (!query || searchable.includes(query)) && (!status || (g.status || 'learning') === status);
+  });
+  if (phrases.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📐</div><div class="empty-title">Sin estructuras todavía</div><div class="empty-desc">Guarda patrones gramaticales para recordarlos fácilmente.</div></div>`;
+    return;
+  }
+  grid.innerHTML = phrases.map(g => `
+    <div class="grammar-card state-${g.status || 'learning'}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+        <div class="grammar-pattern">${g.pattern}</div>
+        <div style="display:flex;gap:4px">
+          ${statusPickerHTML('phrase', g.id, g.status)}
+          ${g.hsk ? `<span class="hsk hsk-${g.hsk}">HSK ${g.hsk}</span>` : ''}
+          <button class="word-action-btn" onclick="openAddGrammar('${g.id}')">✎</button>
+          <button class="word-action-btn" onclick="deleteGrammar('${g.id}')" style="color:var(--red)">✕</button>
+        </div>
+      </div>
+      <div class="grammar-meaning">${g.meaning}</div>
+      ${g.examplePinyin ? `<div class="grammar-example-pinyin" style="margin-bottom:8px">${g.examplePinyin}</div>` : ''}
+      ${g.explanation ? `<div class="grammar-explanation">${g.explanation}</div>` : ''}
+      ${g.exampleZh ? `<div class="grammar-example-box">
+        <div class="grammar-example-zh">${g.exampleZh}</div>
+        ${g.examplePinyin ? `<div class="grammar-example-pinyin">${g.examplePinyin}</div>` : ''}
+        ${g.exampleEs ? `<div class="grammar-example-es">${g.exampleEs}</div>` : ''}
+      </div>` : ''}
+    </div>
+  `).join('');
+}
+
+function deleteGrammar(id) {
+  if (!confirm('¿Eliminar esta estructura?')) return;
+  DB.grammar = DB.grammar.filter(g => g.id !== id);
+  saveDB();
+  updateNavBadges();
+  renderGrammar();
+}
+
+// ============================================================
+// RENDER: CATEGORIES
+// ============================================================
+function renderCategories() {
+  const grid = document.getElementById('categories-grid');
+  grid.innerHTML = DB.categories.map(c => {
+    const count = DB.words.filter(w => w.category === c.id).length;
+    return `
+      <div class="card" style="cursor:default">
+        <div style="font-size:28px;margin-bottom:8px">${c.emoji||'📁'}</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
+        <div style="font-size:13px;color:var(--text2)">${count} palabra${count!==1?'s':''}</div>
+        <div style="margin-top:12px;display:flex;gap:6px">
+          <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="filterByCategory('${c.id}')">Ver palabras</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterByCategory(catId) {
+  showPage('dictionary');
+  setTimeout(() => {
+    document.getElementById('filter-category').value = catId;
+    renderDictionary();
+  }, 50);
+}
+
+// ============================================================
+// RENDER: GRAPH (D3)
+// ============================================================
+let simulation, svg, g, zoom;
+let graphLanguage = 'zh';
+
+function setGraphLanguage(language) {
+  graphLanguage = language;
+  document.getElementById('graph-lang-zh').classList.toggle('active', language === 'zh');
+  document.getElementById('graph-lang-pinyin').classList.toggle('active', language === 'pinyin');
+  renderGraph();
+}
+
+function renderGraph() {
+  const container = document.getElementById('graph-container');
+  const svgEl = document.getElementById('graph-svg');
+  svgEl.innerHTML = '';
+  if (DB.words.length === 0) {
+    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--text2)" font-size="14" font-family="DM Sans">Añade palabras para ver el grafo</text>';
+    return;
+  }
+
+  const width = container.offsetWidth;
+  const height = container.offsetHeight;
+
+  svg = d3.select('#graph-svg')
+    .attr('width', width).attr('height', height);
+
+  zoom = d3.zoom()
+    .scaleExtent([0.2, 4])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+  svg.call(zoom);
+
+  g = svg.append('g');
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id','node-glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
+  const merge = glow.append('feMerge');
+  merge.append('feMergeNode').attr('in','blur');
+  merge.append('feMergeNode').attr('in','SourceGraphic');
+
+  // Build nodes and links
+  const nodes = DB.words.slice(0, 180).map(w => ({
+    id: w.id, zh: w.zh, pinyin: w.pinyin, translation: w.translation,
+    hsk: w.hsk, category: w.category
+  }));
+  const nodeIds = new Set(nodes.map(n => n.id));
+
+  // Auto-create links from same category
+  const links = [...DB.relations.filter(r => nodeIds.has(r.from) && nodeIds.has(r.to)).map(r => ({source:r.from,target:r.to,type:r.type}))];
+  const catGroups = {};
+  nodes.forEach(n => { if (n.category) { (catGroups[n.category]||(catGroups[n.category]=[])).push(n.id); } });
+  Object.values(catGroups).forEach(ids => {
+    for (let i = 0; i < ids.length - 1 && i < 3; i++) {
+      links.push({source:ids[i],target:ids[i+1],type:'category'});
+    }
+  });
+
+  // Color by category
+  const catColors = ['#c9500a','#1757a8','#1a7a4a','#6b3fa0','#b8860b','#c0392b','#0f766e','#7c3aed'];
+  const catColorMap = {};
+  DB.categories.forEach((c,i) => { catColorMap[c.id] = catColors[i % catColors.length]; });
+  const activeCategories = DB.categories.filter(c => nodes.some(n => n.category === c.id));
+  const categoryCenters = {};
+  const orbit = Math.min(width, height) * 0.32;
+  activeCategories.forEach((category, index) => {
+    const angle = (Math.PI * 2 * index / Math.max(activeCategories.length, 1)) - Math.PI / 2;
+    categoryCenters[category.id] = {
+      x: width / 2 + Math.cos(angle) * orbit,
+      y: height / 2 + Math.sin(angle) * orbit
+    };
+  });
+  const uncategorizedCenter = {x:width/2,y:height/2};
+
+  const zones = g.append('g').attr('pointer-events','none');
+  zones.selectAll('text').data(activeCategories).join('text')
+    .attr('class','graph-zone-label')
+    .attr('x',d=>categoryCenters[d.id].x)
+    .attr('y',d=>categoryCenters[d.id].y - 78)
+    .attr('text-anchor','middle')
+    .text(d=>d.name);
+
+  // Links
+  const link = g.append('g').selectAll('line').data(links).join('line')
+    .attr('class','graph-link').attr('stroke', '#3e6a91').attr('stroke-width', 1).attr('stroke-opacity', 0.45);
+
+  // Nodes
+  const node = g.append('g').selectAll('g').data(nodes).join('g')
+    .attr('class','knowledge-node')
+    .attr('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag', (event, d) => { d.fx=event.x; d.fy=event.y; })
+      .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }))
+    .on('mouseover', showTooltip)
+    .on('mouseout', hideTooltip)
+    .on('click', (event, d) => { event.stopPropagation(); showTooltip(event, d, true); });
+
+  node.append('polygon')
+    .attr('class','graph-node-shape')
+    .attr('points','-42,-20 34,-20 44,-10 44,20 -34,20 -44,10 -44,-20')
+    .attr('fill', '#0d1420')
+    .attr('fill-opacity', 0.94)
+    .attr('stroke', d => catColorMap[d.category] || '#4dd8ff')
+    .attr('stroke-width', 1.2)
+    .attr('filter','url(#node-glow)');
+
+  node.append('text')
+    .text(d => graphLanguage === 'pinyin' ? d.pinyin : d.zh)
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'central')
+    .attr('font-family', graphLanguage === 'pinyin' ? "'DM Sans', sans-serif" : "'Noto Sans SC', sans-serif")
+    .attr('font-size', d => graphLanguage === 'pinyin' ? 10 : 14)
+    .attr('fill', '#dff8ff')
+    .attr('font-weight', '500');
+
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(125).strength(0.35))
+    .force('charge', d3.forceManyBody().strength(-170))
+    .force('x',d3.forceX(d=>(categoryCenters[d.category]||uncategorizedCenter).x).strength(.24))
+    .force('y',d3.forceY(d=>(categoryCenters[d.category]||uncategorizedCenter).y).strength(.24))
+    .force('collision', d3.forceCollide().radius(54))
+    .on('tick', () => {
+      link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+}
+
+function showTooltip(event, d, sticky) {
+  const tt = document.getElementById('node-tooltip');
+  document.getElementById('tt-zh').textContent = d.zh;
+  document.getElementById('tt-pinyin').textContent = d.pinyin;
+  document.getElementById('tt-trans').textContent = d.translation;
+  const rels = DB.relations.filter(r => r.from === d.id || r.to === d.id);
+  document.getElementById('tt-relations').innerHTML = rels.map(r => {
+    const otherId = r.from === d.id ? r.to : r.from;
+    const other = DB.words.find(w => w.id === otherId);
+    if (!other) return '';
+    const typeClass = {synonym:'rel-synonym',antonym:'rel-antonym',family:'rel-family',theme:'rel-theme'}[r.type] || 'rel-theme';
+    const typeLabel = {synonym:'Sinónimo',antonym:'Antónimo',family:'Familia léxica',category:'Misma categoría',theme:'Temática'}[r.type] || r.type;
+    return `<span class="rel-badge ${typeClass}">${typeLabel}: ${other.zh}</span>`;
+  }).join('');
+  const rect = document.getElementById('graph-container').getBoundingClientRect();
+  let x = event.clientX - rect.left + 12;
+  let y = event.clientY - rect.top + 12;
+  if (x + 240 > rect.width) x = event.clientX - rect.left - 200;
+  tt.style.left = x + 'px';
+  tt.style.top = y + 'px';
+  tt.classList.add('visible');
+}
+
+function hideTooltip() {
+  document.getElementById('node-tooltip').classList.remove('visible');
+}
+
+function resetZoom() {
+  if (svg && zoom) svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(0,0).scale(1));
+}
+
+function addRelationMode() {
+  showToast('Haz clic en dos palabras en el diccionario para conectarlas (función en desarrollo)');
+}
+
+function searchNode(query) {
+  if (!g) return;
+  const normalizedQuery = normalizeText(query);
+  g.selectAll('.graph-node-shape')
+    .attr('stroke-width', d => normalizeText(`${d.zh} ${d.pinyin} ${d.translation}`).includes(normalizedQuery) && normalizedQuery ? 3 : 1.2)
+    .attr('fill', d => normalizeText(`${d.zh} ${d.pinyin} ${d.translation}`).includes(normalizedQuery) && normalizedQuery ? '#163044' : '#0d1420');
+}
+
+function suggestGraphMatches(query) {
+  const results = document.getElementById('graph-search-results');
+  const normalized = normalizeText(query);
+  searchNode(query);
+  if (!normalized) {
+    results.classList.remove('open');
+    results.innerHTML = '';
+    return;
+  }
+  const matches = DB.words.filter(w => normalizeText(`${w.zh} ${w.pinyin} ${w.translation}`).includes(normalized)).slice(0,12);
+  results.innerHTML = matches.map(w => `
+    <button class="graph-search-item" onclick="focusGraphNode('${w.id}')">
+      <span style="font-family:var(--font-zh);font-size:19px">${w.zh}</span>
+      <span><strong style="color:#4dd8ff">${w.pinyin}</strong><br><small style="color:#91a7c7">${w.translation}</small></span>
+    </button>`).join('') || `<div style="padding:12px;color:#91a7c7;font-size:12px">Sin coincidencias</div>`;
+  results.classList.add('open');
+}
+
+function focusGraphNode(id) {
+  if (!g || !svg || !zoom) return;
+  const selection = g.selectAll('.knowledge-node').filter(d => d.id === id);
+  const datum = selection.datum();
+  if (!datum) return;
+  const container = document.getElementById('graph-container');
+  svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity.translate(container.offsetWidth/2,container.offsetHeight/2).scale(1.7).translate(-datum.x,-datum.y));
+  g.selectAll('.graph-node-shape').attr('stroke-width',1.2);
+  selection.select('.graph-node-shape').attr('stroke-width',3).attr('fill','#163044');
+  document.getElementById('graph-search-results').classList.remove('open');
+}
+
+// ============================================================
+// RENDER: RECOMMENDATIONS
+// ============================================================
+const recSuggestions = [
+  {zh:'城市',pinyin:'chéngshì',translation:'ciudad',reason:'Relacionada con 中国, 北京, 上海',hsk:'3'},
+  {zh:'国家',pinyin:'guójiā',translation:'país, nación',reason:'Categoría: geografía política',hsk:'2'},
+  {zh:'外国',pinyin:'wàiguó',translation:'extranjero (país)',reason:'Familia léxica de 中国',hsk:'2'},
+  {zh:'地图',pinyin:'dìtú',translation:'mapa',reason:'Contexto: geografía y viajes',hsk:'3'},
+  {zh:'地方',pinyin:'dìfāng',translation:'lugar, sitio',reason:'Muy frecuente, nivel HSK 3',hsk:'3'},
+  {zh:'文化',pinyin:'wénhuà',translation:'cultura',reason:'Relacionada con 中文, idioma',hsk:'4'},
+  {zh:'历史',pinyin:'lìshǐ',translation:'historia',reason:'Contexto: China, cultura',hsk:'4'},
+  {zh:'语言',pinyin:'yǔyán',translation:'idioma, lengua',reason:'Familia léxica de 中文',hsk:'3'},
+  {zh:'旅游',pinyin:'lǚyóu',translation:'turismo, viajar',reason:'Categoría: viajes',hsk:'3'},
+  {zh:'饭店',pinyin:'fàndiàn',translation:'restaurante, hotel',reason:'Alta frecuencia de uso',hsk:'2'},
+  {zh:'朋友',pinyin:'péngyou',translation:'amigo',reason:'Vocabulario esencial HSK 2',hsk:'2'},
+  {zh:'工作',pinyin:'gōngzuò',translation:'trabajo, trabajar',reason:'Alta frecuencia de uso',hsk:'2'},
+];
+
+function generateRecommendations() {
+  const learnedZh = new Set(DB.words.map(w => w.zh));
+  const toShow = recSuggestions.filter(r => !learnedZh.has(r.zh));
+  const grid = document.getElementById('rec-grid');
+  if (toShow.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">✦</div><div class="empty-title">¡Todo recomendado ya está aprendido!</div><div class="empty-desc">Sigue añadiendo palabras para obtener nuevas recomendaciones.</div></div>`;
+    return;
+  }
+  grid.innerHTML = toShow.map(r => `
+    <div class="rec-card">
+      <div class="rec-zh-big">${r.zh}</div>
+      <div class="rec-body">
+        <div class="rec-pinyin">${r.pinyin}</div>
+        <div class="rec-translation">${r.translation}</div>
+        ${r.hsk ? `<span class="hsk hsk-${r.hsk}" style="margin-bottom:8px;display:inline-flex">HSK ${r.hsk}</span>` : ''}
+        <div class="rec-reason">💡 ${r.reason}</div>
+      </div>
+      <button class="rec-add-btn" title="Añadir al diccionario" onclick="addRecommended('${r.zh}','${r.pinyin}','${r.translation}','${r.hsk||''}')">+</button>
+    </div>
+  `).join('');
+}
+
+function addRecommended(zh, pinyin, translation, hsk) {
+  DB.words.unshift({
+    id: genId(), zh, pinyin, translation,
+    hsk: hsk || '', category: '', exampleZh:'', exampleEs:'', notes:'', tags:[],
+    status:'learning', starred: false, difficulty: 0,
+    date: new Date().toISOString(), reviewCount: 0, nextReview: new Date().toISOString()
+  });
+  saveDB();
+  updateNavBadges();
+  showToast(`✓ "${zh}" añadida al diccionario`);
+  generateRecommendations();
+}
+
+// ============================================================
+// RENDER: REVIEW (SRS simplified)
+// ============================================================
+let reviewQueue = [];
+let reviewIdx = 0;
+let reviewShowing = false;
+
+function renderReview() {
+  reviewQueue = DB.words
+    .filter(w => {
+      const next = new Date(w.nextReview || 0);
+      return (w.status || 'learning') !== 'planned' && next <= new Date();
+    })
+    .sort((a,b) => new Date(a.nextReview) - new Date(b.nextReview))
+    .slice(0, 20);
+  reviewIdx = 0;
+  reviewShowing = false;
+  renderReviewCard();
+}
+
+function renderReviewCard() {
+  const el = document.getElementById('review-content');
+  if (reviewQueue.length === 0) {
+    el.innerHTML = `<div class="card" style="max-width:480px;margin:0 auto;text-align:center;padding:48px 24px">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px">¡Sin palabras pendientes!</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:20px">Todas tus palabras están al día. Vuelve más tarde o añade nuevas.</div>
+      <button class="btn btn-primary" onclick="reviewAll()">Repasar todas</button>
+    </div>`;
+    return;
+  }
+  const total = reviewQueue.length;
+  const current = reviewQueue[reviewIdx];
+  const progress = reviewIdx / total * 100;
+  el.innerHTML = `
+    <div style="max-width:480px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <span style="font-size:12px;color:var(--text2)">${reviewIdx}/${total}</span>
+      </div>
+      <div class="card" style="text-align:center;padding:40px 24px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:20px;text-transform:uppercase;letter-spacing:0.06em">¿Cuál es la traducción?</div>
+        <div style="font-family:var(--font-zh);font-size:64px;font-weight:500;color:var(--text);margin-bottom:8px;line-height:1">${current.zh}</div>
+        ${reviewShowing ? `
+          <div style="font-size:16px;font-style:italic;color:var(--accent);margin-bottom:4px">${current.pinyin}</div>
+          <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:8px">${current.translation}</div>
+          ${current.exampleZh ? `<div style="font-size:13px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:20px;text-align:left">
+            <div style="font-family:var(--font-zh)">${current.exampleZh}</div>
+            <div style="font-size:12px;margin-top:2px">${current.exampleEs||''}</div>
+          </div>` : '<div style="height:20px"></div>'}
+          <div class="review-btns">
+            <button class="review-btn review-hard" onclick="reviewAnswer('hard')">Difícil</button>
+            <button class="review-btn review-medium" onclick="reviewAnswer('medium')">Bien</button>
+            <button class="review-btn review-easy" onclick="reviewAnswer('easy')">Fácil</button>
+          </div>
+        ` : `
+          <button class="btn btn-secondary" style="margin-top:24px" onclick="showAnswer()">Ver respuesta</button>
+        `}
+      </div>
+      ${reviewIdx > 0 ? `<div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3)">Completa ${total - reviewIdx} más para terminar</div>` : ''}
+    </div>`;
+}
+
+function showAnswer() {
+  reviewShowing = true;
+  renderReviewCard();
+}
+
+function reviewAnswer(rating) {
+  const word = reviewQueue[reviewIdx];
+  const w = DB.words.find(w => w.id === word.id);
+  if (w) {
+    w.reviewCount = (w.reviewCount || 0) + 1;
+    const days = rating === 'easy' ? 7 : rating === 'medium' ? 3 : 1;
+    const next = new Date();
+    next.setDate(next.getDate() + days);
+    w.nextReview = next.toISOString();
+    w.difficulty = rating === 'hard' ? Math.min((w.difficulty||0)+1,3) : Math.max((w.difficulty||0)-1,0);
+    saveDB();
+  }
+  reviewIdx++;
+  if (reviewIdx >= reviewQueue.length) {
+    renderFinishedReview();
+  } else {
+    reviewShowing = false;
+    renderReviewCard();
+  }
+}
+
+function reviewAll() {
+  reviewQueue = DB.words.slice(0, 20);
+  reviewIdx = 0;
+  reviewShowing = false;
+  renderReviewCard();
+}
+
+function renderFinishedReview() {
+  document.getElementById('review-content').innerHTML = `
+    <div class="card" style="max-width:480px;margin:0 auto;text-align:center;padding:48px 24px">
+      <div style="font-size:48px;margin-bottom:12px">🏆</div>
+      <div style="font-size:20px;font-weight:600;margin-bottom:8px">¡Sesión completada!</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Repasaste ${reviewQueue.length} palabras. ¡Excelente trabajo!</div>
+      <button class="btn btn-primary" onclick="renderReview()">Nueva sesión</button>
+    </div>`;
+}
+
+// ============================================================
+// IMPORT / EXPORT
+// ============================================================
+function exportJSON() {
+  const data = JSON.stringify(DB, null, 2);
+  download(data, 'hanzivault-backup.json', 'application/json');
+  showToast('✓ Exportado como JSON');
+}
+
+function exportCSV() {
+  const header = 'Chino,Pinyin,Traducción,Categoría,HSK,Etiquetas,Fecha,Estado';
+  const rows = DB.words.map(w => {
+    const cat = DB.categories.find(c => c.id === w.category);
+    return [w.zh,w.pinyin,w.translation,cat?cat.name:'',w.hsk||'',(w.tags||[]).join(';'),w.date,w.status||'learning'].map(f=>`"${(f||'').replace(/"/g,'""')}"`).join(',');
+  });
+  download([header,...rows].join('\n'), 'hanzivault-diccionario.csv', 'text/csv');
+  showToast('✓ Exportado como CSV');
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.words) { DB.words = [...data.words, ...DB.words.filter(w => !data.words.find(d=>d.id===w.id))]; }
+      if (data.grammar) { DB.grammar = [...data.grammar, ...DB.grammar.filter(g => !data.grammar.find(d=>d.id===g.id))]; }
+      if (data.categories) { DB.categories = [...data.categories]; }
+      if (data.relations) { DB.relations = [...data.relations]; }
+      saveDB();
+      updateNavBadges();
+      showToast(`✓ Importadas ${data.words?.length||0} palabras`);
+    } catch(e) { showToast('Error al leer el archivo JSON', 'error'); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').slice(1);
+    let count = 0;
+    lines.forEach(line => {
+      if (!line.trim()) return;
+      const cols = line.split(',').map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      if (cols[0] && cols[1] && cols[2]) {
+        DB.words.unshift({ id:genId(), zh:cols[0], pinyin:cols[1], translation:cols[2],
+          category:'', hsk:cols[4]||'', tags:(cols[5]||'').split(';').filter(Boolean),
+          status:cols[7]||'learning', date: new Date().toISOString(), starred:false, reviewCount:0, nextReview:new Date().toISOString() });
+        count++;
+      }
+    });
+    saveDB(); updateNavBadges();
+    showToast(`✓ Importadas ${count} palabras desde CSV`);
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function download(data, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type}));
+  a.download = filename; a.click();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function updateNavBadges() {
+  document.getElementById('nav-word-count').textContent = DB.words.length;
+  document.getElementById('nav-grammar-count').textContent = DB.grammar.length;
+  const all = [...DB.words, ...DB.grammar];
+  const learned = all.filter(item => item.status === 'learned').length;
+  const learning = all.filter(item => item.status === 'learning').length;
+  const percent = all.length ? Math.round((learned + learning * 0.35) / all.length * 100) : 0;
+  const levels = percent < 10 ? 'Nivel inicial' : percent < 30 ? 'HSK 1 en progreso' : percent < 50 ? 'Base intermedia' : percent < 75 ? 'Conversación funcional' : 'Dominio avanzado';
+  document.getElementById('level-fill').style.width = `${percent}%`;
+  document.getElementById('level-percent').textContent = `${percent}%`;
+  document.getElementById('level-label').textContent = levels;
+}
+
+function showToast(msg, type) {
+  const tc = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  if (type === 'error') t.style.background = 'var(--red)';
+  t.textContent = msg;
+  tc.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(4px)'; t.style.transition='all 0.2s'; setTimeout(()=>t.remove(),200); }, 2800);
+}
+
+function normalizeText(value = '') {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[’'`´.,\/#!$%^&*;:{}=\-_~()?¿¡]/g, '')
+    .replace(/\s+/g, '');
+}
+
+const PINYIN_LEXICON = [
+  {zh:'果',pinyin:'guǒ',translation:'fruta',hsk:'3'},
+  {zh:'果',pinyin:'guǒ',translation:'resultado',hsk:'3'},
+  {zh:'国',pinyin:'guó',translation:'país; nación',hsk:'1'},
+  {zh:'过',pinyin:'guò',translation:'pasar; experimentar',hsk:'2'},
+  {zh:'锅',pinyin:'guō',translation:'olla; sartén',hsk:'4'},
+  {zh:'郭',pinyin:'Guō',translation:'apellido Guo',hsk:''},
+  {zh:'学',pinyin:'xué',translation:'estudiar; aprender',hsk:'1'},
+  {zh:'习',pinyin:'xí',translation:'practicar; hábito',hsk:'1'},
+  {zh:'学习',pinyin:'xuéxí',translation:'estudiar; aprender',hsk:'1'},
+  {zh:'是',pinyin:'shì',translation:'ser',hsk:'1'},
+  {zh:'十',pinyin:'shí',translation:'diez',hsk:'1'},
+  {zh:'时',pinyin:'shí',translation:'tiempo; hora',hsk:'2'},
+  {zh:'事',pinyin:'shì',translation:'asunto; cosa',hsk:'2'}
+];
+
+function suggestPinyinCandidates(query) {
+  const container = document.getElementById('pinyin-candidates');
+  const normalized = normalizeText(query);
+  if (!normalized || document.getElementById('word-edit-id').value) {
+    container.innerHTML = '';
+    return;
+  }
+  const combined = [...PINYIN_LEXICON, ...DB.words];
+  const seen = new Set();
+  const candidates = combined.filter(item => {
+    const key = `${item.zh}|${item.pinyin}|${item.translation}`;
+    if (seen.has(key) || !normalizeText(item.pinyin).includes(normalized)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 10);
+  container.innerHTML = candidates.length ? candidates.map((item,index) => `
+    <button type="button" class="candidate-item" onclick="selectPinyinCandidate(${index})">
+      <span class="candidate-zh">${item.zh}</span>
+      <span><span class="candidate-pinyin">${item.pinyin}</span><br><span class="candidate-meaning">${item.translation}</span></span>
+      <span style="color:var(--text3)">Elegir</span>
+    </button>`).join('') : `<div class="candidate-meaning">Sin coincidencias locales. Puedes completar los campos manualmente.</div>`;
+  window.currentPinyinCandidates = candidates;
+}
+
+function selectPinyinCandidate(index) {
+  const item = (window.currentPinyinCandidates || [])[index];
+  if (!item) return;
+  const existing = DB.words.find(w => w.zh === item.zh && normalizeText(w.pinyin) === normalizeText(item.pinyin) && w.translation === item.translation);
+  if (existing) {
+    existing.status = 'learning';
+    existing.nextReview = new Date().toISOString();
+    saveDB();
+    closeModal('modal-add-word');
+    updateNavBadges();
+    renderDictionary();
+    showToast(`✓ "${item.zh}" ya está en tu diccionario y pasa a En proceso`);
+    return;
+  }
+  document.getElementById('word-zh').value = item.zh;
+  document.getElementById('word-pinyin').value = item.pinyin;
+  document.getElementById('word-translation').value = item.translation;
+  document.getElementById('word-hsk').value = item.hsk || '';
+  const related = DB.words.find(w => w.zh === item.zh || normalizeText(w.pinyin) === normalizeText(item.pinyin));
+  document.getElementById('word-category').value = item.category || related?.category || '';
+  document.getElementById('pinyin-candidates').innerHTML = '';
+  saveWord();
+}
+
+function statusPickerHTML(type, id, status = 'learning') {
+  const labels = {planned:'Por conocer', learning:'En proceso', learned:'Aprendido'};
+  return `<div class="status-picker" onclick="event.stopPropagation()">${Object.entries(labels).map(([key,label]) =>
+    `<button class="status-dot ${key} ${status===key?'active':''}" onclick="setItemStatus('${type}','${id}','${key}')" title="${label}" aria-label="${label}"></button>`
+  ).join('')}</div>`;
+}
+
+function toggleSidebar() {
+  const app = document.querySelector('.app');
+  app.classList.toggle('sidebar-collapsed');
+  const collapsed = app.classList.contains('sidebar-collapsed');
+  document.getElementById('collapse-icon').textContent = collapsed ? '»' : '«';
+  localStorage.setItem('hanzivault_sidebar', collapsed ? 'collapsed' : 'open');
+  if (document.getElementById('page-graph').classList.contains('active')) setTimeout(renderGraph, 260);
+}
+
+function handleGlobalSearch(query) {
+  if (!query.trim()) return;
+  showPage('dictionary');
+  setTimeout(() => {
+    document.getElementById('dict-search').value = query;
+    renderDictionary();
+  }, 30);
+}
+
+let isDark = false;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
+  document.getElementById('theme-icon').textContent = isDark ? '☀' : '◑';
+  document.getElementById('theme-label').textContent = isDark ? 'Tema claro' : 'Tema oscuro';
+}
+
+// ============================================================
+// SEED DATA (demo)
+// ============================================================
+function seedDemoData() {
+  if (DB.words.length > 0) return;
+  const demos = [
+    {zh:'中国',pinyin:'Zhōngguó',translation:'China',category:'cat5',hsk:'1',exampleZh:'我来自中国。',exampleEs:'Vengo de China.',tags:['geografía']},
+    {zh:'北京',pinyin:'Běijīng',translation:'Pekín (capital de China)',category:'cat5',hsk:'1',exampleZh:'北京是中国的首都。',exampleEs:'Pekín es la capital de China.',tags:['geografía','ciudad']},
+    {zh:'上海',pinyin:'Shànghǎi',translation:'Shanghái',category:'cat5',hsk:'1',exampleZh:'上海是中国最大的城市。',exampleEs:'Shanghái es la ciudad más grande de China.',tags:['geografía','ciudad']},
+    {zh:'学习',pinyin:'xuéxí',translation:'estudiar, aprender',category:'cat7',hsk:'1',exampleZh:'我每天学习汉语。',exampleEs:'Estudio chino cada día.',tags:['verbos']},
+    {zh:'吃饭',pinyin:'chīfàn',translation:'comer (arroz/comida)',category:'cat1',hsk:'1',exampleZh:'我们一起去吃饭吧。',exampleEs:'Vamos a comer juntos.',tags:['comida','verbos']},
+    {zh:'朋友',pinyin:'péngyou',translation:'amigo/a',category:'cat3',hsk:'1',exampleZh:'她是我的好朋友。',exampleEs:'Ella es mi buena amiga.',tags:['personas']},
+    {zh:'工作',pinyin:'gōngzuò',translation:'trabajo, trabajar',category:'cat4',hsk:'2',exampleZh:'你的工作怎么样？',exampleEs:'¿Cómo va tu trabajo?',tags:['verbos']},
+    {zh:'汉语',pinyin:'Hànyǔ',translation:'idioma chino',category:'cat9',hsk:'2',exampleZh:'汉语很难但很有意思。',exampleEs:'El chino es difícil pero muy interesante.',tags:['idioma']},
+  ];
+  const baseDate = new Date();
+  demos.forEach((d, i) => {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() - i * 2);
+    DB.words.push({id:genId(),...d,notes:'',starred:i<3,difficulty:0,date:date.toISOString(),reviewCount:0,nextReview:new Date().toISOString()});
+  });
+  DB.grammar = [
+    {id:genId(),pattern:'越来越…',meaning:'Cada vez más…',hsk:'3',explanation:'Expresa un cambio gradual o progresivo. La adjetivo o verbo que sigue indica qué aumenta.',exampleZh:'天气越来越热了。',examplePinyin:'Tiānqì yuèláiyuè rè le.',exampleEs:'Hace cada vez más calor.',date:new Date().toISOString()},
+    {id:genId(),pattern:'虽然…但是…',meaning:'Aunque…, pero…',hsk:'3',explanation:'Estructura concesiva. Introduce una contraposición entre dos hechos.',exampleZh:'虽然下雨，但是我还是要去。',examplePinyin:'Suīrán xià yǔ, dànshì wǒ hái shì yào qù.',exampleEs:'Aunque llueve, igualmente voy a ir.',date:new Date().toISOString()},
+    {id:genId(),pattern:'是…的',meaning:'Fue… que / Es… (énfasis)',hsk:'2',explanation:'Se usa para enfatizar el tiempo, lugar, modo o sujeto de una acción pasada.',exampleZh:'我是昨天来的。',examplePinyin:'Wǒ shì zuótiān lái de.',exampleEs:'Fue ayer cuando vine.',date:new Date().toISOString()},
+  ];
+  saveDB();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  await loadDB();
+  seedDemoData();
+  if (localStorage.getItem('hanzivault_sidebar') === 'collapsed') {
+    document.querySelector('.app').classList.add('sidebar-collapsed');
+    document.getElementById('collapse-icon').textContent = '»';
+  }
+  updateNavBadges();
+  renderDashboard();
+  const requestedPage = new URLSearchParams(location.search).get('page');
+  if (requestedPage && document.getElementById(`page-${requestedPage}`)) showPage(requestedPage);
+  document.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      document.getElementById('global-search').focus();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      if (document.getElementById('modal-add-word').classList.contains('open')) saveWord();
+      else openAddWord();
+    }
+  });
+}
+init();
+</script>
+</body>
+</html>
