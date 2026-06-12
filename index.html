@@ -856,6 +856,7 @@ let DB = {
 
 let saveTimer;
 let cloudEnabled = location.protocol === 'http:' || location.protocol === 'https:';
+let CEDICT_INDEX = null;  // Índice de diccionario cargado localmente
 
 function saveDB() {
   DB.version = 2;
@@ -1990,15 +1991,25 @@ async function getQuickPinyinMatches(query) {
   const local = getLocalPinyinMatches(query);
   let remote = [];
   let exactCount = 0;
-  try {
-    const response = await fetch(`/api/dictionary?q=${encodeURIComponent(normalized)}`);
-    if (!response.ok) throw new Error('dictionary unavailable');
-    const payload = await response.json();
-    remote = payload.results || [];
-    exactCount = payload.exactCount || 0;
-  } catch (error) {
-    console.warn('No se pudo consultar CC-CEDICT; se usan coincidencias locales.', error);
+  
+  // Usar índice CEDICT cargado localmente
+  if (CEDICT_INDEX && normalized) {
+    const exact = CEDICT_INDEX[normalized] || [];
+    exactCount = exact.length;
+    const prefix = [];
+    if (exactCount > 0) {
+      remote.push(...exact);
+    }
+    // Buscar prefijos
+    for (const key of Object.keys(CEDICT_INDEX)) {
+      if (key !== normalized && key.startsWith(normalized)) {
+        prefix.push(...CEDICT_INDEX[key]);
+        if (prefix.length >= 200) break;
+      }
+    }
+    remote.push(...prefix.slice(0, 200));
   }
+  
   const seen = new Set();
   const matches = [...local, ...remote].filter(item => {
     const key = `${item.zh}|${normalizeText(item.pinyin)}|${item.translation}`;
@@ -2172,7 +2183,20 @@ function seedDemoData() {
 // ============================================================
 // INIT
 // ============================================================
+async function loadCEDICTIndex() {
+  try {
+    const response = await fetch('cedict-index.json');
+    if (response.ok) {
+      CEDICT_INDEX = await response.json();
+      console.log(`Índice CEDICT cargado: ${Object.keys(CEDICT_INDEX).length} claves`);
+    }
+  } catch (error) {
+    console.warn('No se pudo cargar el índice CEDICT:', error);
+  }
+}
+
 async function init() {
+  await loadCEDICTIndex();
   await loadDB();
   seedDemoData();
   if (localStorage.getItem('hanzivault_sidebar') === 'collapsed') {
