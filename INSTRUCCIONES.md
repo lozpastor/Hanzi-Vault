@@ -12,9 +12,11 @@ El contenido está separado entre palabras y frases. Los tres círculos de estad
 
 Los cambios se guardan en `data.json` y aparecen en todos los dispositivos que accedan al mismo servidor. La terminal debe permanecer abierta mientras usas la aplicación. En Windows puede ser necesario permitir Python en el firewall de red privada.
 
+El selector de palabras consulta las 125.000 entradas de CC-CEDICT cuando la aplicación se abre mediante `server.py`. Escribe el pinyin sin tonos, por ejemplo `shui`, para ver primero todas las pronunciaciones exactas y después palabras más largas relacionadas.
+
 ## Abrir sin servidor
 
-También puedes abrir `hanzi-vault.html` directamente. En ese modo los cambios persisten al refrescar, pero quedan guardados solo en ese navegador.
+También puedes abrir `index.html` directamente. En ese modo los cambios persisten al refrescar, pero quedan guardados solo en ese navegador y el selector por pinyin utiliza únicamente las coincidencias locales.
 
 ## Atajos
 
