@@ -1961,7 +1961,7 @@ const PINYIN_LEXICON = [
   {zh:'事',pinyin:'shì',translation:'asunto; cosa',hsk:'2'}
 ];
 
-function getQuickPinyinMatches(query) {
+function getLocalPinyinMatches(query) {
   const normalized = normalizeText(query);
   if (!normalized) return [];
   const combined = [...PINYIN_LEXICON, ...DB.words];
@@ -1975,16 +1975,64 @@ function getQuickPinyinMatches(query) {
     const aExact = normalizeText(a.pinyin) === normalized ? 0 : 1;
     const bExact = normalizeText(b.pinyin) === normalized ? 0 : 1;
     return aExact - bExact || a.pinyin.length - b.pinyin.length;
-  }).slice(0,30);
+  });
 }
 
-function renderQuickAddMatches(query) {
-  const matches = getQuickPinyinMatches(query);
+function escapeQuickHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[char]);
+}
+
+async function getQuickPinyinMatches(query) {
+  const normalized = normalizeText(query);
+  if (!normalized) return {matches:[], exactCount:0, source:'local'};
+  const local = getLocalPinyinMatches(query);
+  let remote = [];
+  let exactCount = 0;
+  try {
+    const response = await fetch(`/api/dictionary?q=${encodeURIComponent(normalized)}`);
+    if (!response.ok) throw new Error('dictionary unavailable');
+    const payload = await response.json();
+    remote = payload.results || [];
+    exactCount = payload.exactCount || 0;
+  } catch (error) {
+    console.warn('No se pudo consultar CC-CEDICT; se usan coincidencias locales.', error);
+  }
+  const seen = new Set();
+  const matches = [...local, ...remote].filter(item => {
+    const key = `${item.zh}|${normalizeText(item.pinyin)}|${item.translation}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a,b) => {
+    const aExact = normalizeText(a.pinyin) === normalized ? 0 : 1;
+    const bExact = normalizeText(b.pinyin) === normalized ? 0 : 1;
+    return aExact - bExact || a.pinyin.length - b.pinyin.length || a.zh.localeCompare(b.zh);
+  });
+  return {matches, exactCount, source:remote.length ? 'CC-CEDICT' : 'local'};
+}
+
+async function renderQuickAddMatches(query) {
+  const results = document.getElementById('quick-add-results');
+  const requestId = (window.quickAddRequestId || 0) + 1;
+  window.quickAddRequestId = requestId;
+  if (!normalizeText(query)) {
+    window.quickAddMatches = [];
+    results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Empieza escribiendo el pinyin de una palabra.</div>';
+    return;
+  }
+  results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Buscando en el diccionario completo...</div>';
+  const {matches, exactCount, source} = await getQuickPinyinMatches(query);
+  if (requestId !== window.quickAddRequestId) return;
   window.quickAddMatches = matches;
-  document.getElementById('quick-add-results').innerHTML = matches.length ? matches.map((item,index) => `
+  const summary = source === 'CC-CEDICT'
+    ? `<div style="padding:0 2px 8px;color:var(--text3);font-size:12px">${exactCount} coincidencias exactas · ${matches.length} resultados mostrados · CC-CEDICT</div>`
+    : '<div style="padding:0 2px 8px;color:var(--text3);font-size:12px">Mostrando coincidencias locales. Inicia la página con server.py para consultar el diccionario completo.</div>';
+  results.innerHTML = matches.length ? summary + matches.map((item,index) => `
     <button type="button" class="quick-result" onclick="addQuickPinyinMatch(${index})">
-      <span class="quick-result-zh">${item.zh}</span>
-      <span><span class="quick-result-pinyin">${item.pinyin}</span><br><span class="quick-result-meaning">${item.translation}</span></span>
+      <span class="quick-result-zh">${escapeQuickHtml(item.zh)}</span>
+      <span><span class="quick-result-pinyin">${escapeQuickHtml(item.pinyin)}</span><br><span class="quick-result-meaning">${escapeQuickHtml(item.translation)}</span></span>
       <span class="quick-result-action">+</span>
     </button>`).join('') : `<div style="padding:24px;text-align:center;color:var(--text3)">No hay coincidencias para ese pinyin.</div>`;
 }
@@ -2013,27 +2061,25 @@ function addQuickPinyinMatch(index) {
   showToast(existing ? `✓ "${item.zh}" pasa a En proceso` : `✓ "${item.zh}" añadida al diccionario`);
 }
 
-function suggestPinyinCandidates(query) {
+async function suggestPinyinCandidates(query) {
   const container = document.getElementById('pinyin-candidates');
   const normalized = normalizeText(query);
   if (!normalized || document.getElementById('word-edit-id').value) {
     container.innerHTML = '';
     return;
   }
-  const combined = [...PINYIN_LEXICON, ...DB.words];
-  const seen = new Set();
-  const candidates = combined.filter(item => {
-    const key = `${item.zh}|${item.pinyin}|${item.translation}`;
-    if (seen.has(key) || !normalizeText(item.pinyin).includes(normalized)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 10);
+  const requestId = (window.pinyinCandidateRequestId || 0) + 1;
+  window.pinyinCandidateRequestId = requestId;
+  container.innerHTML = '<div class="candidate-meaning">Buscando en el diccionario completo...</div>';
+  const {matches} = await getQuickPinyinMatches(query);
+  if (requestId !== window.pinyinCandidateRequestId) return;
+  const candidates = matches.slice(0, 30);
   container.innerHTML = candidates.length ? candidates.map((item,index) => `
     <button type="button" class="candidate-item" onclick="selectPinyinCandidate(${index})">
-      <span class="candidate-zh">${item.zh}</span>
-      <span><span class="candidate-pinyin">${item.pinyin}</span><br><span class="candidate-meaning">${item.translation}</span></span>
+      <span class="candidate-zh">${escapeQuickHtml(item.zh)}</span>
+      <span><span class="candidate-pinyin">${escapeQuickHtml(item.pinyin)}</span><br><span class="candidate-meaning">${escapeQuickHtml(item.translation)}</span></span>
       <span style="color:var(--text3)">Elegir</span>
-    </button>`).join('') : `<div class="candidate-meaning">Sin coincidencias locales. Puedes completar los campos manualmente.</div>`;
+    </button>`).join('') : `<div class="candidate-meaning">No hay coincidencias para ese pinyin. Puedes completar los campos manualmente.</div>`;
   window.currentPinyinCandidates = candidates;
 }
 
