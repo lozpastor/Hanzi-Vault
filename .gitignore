@@ -1,2 +1,6 @@
 __pycache__/
 progress-desktop.png
+.supabase-access-token
+supabase-access-token*
+.supabase-project-password
+qa-*.png

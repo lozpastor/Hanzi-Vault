@@ -97,6 +97,11 @@ class HanziVaultHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        from urllib.parse import unquote
+        requested_parts = Path(unquote(parsed.path)).parts
+        if any(part.startswith('.') or 'supabase-access-token' in part.lower() for part in requested_parts):
+            self.send_error(404)
+            return
         if parsed.path == "/api/db":
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")

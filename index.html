@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 :root {
   --bg: #f2f1ed;
@@ -365,6 +364,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 </head>
 <body>
 <link rel="stylesheet" href="progress.css">
+<link rel="stylesheet" href="studio.css">
 
 <div class="app">
 <!-- SIDEBAR -->
@@ -597,9 +597,11 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       <div class="section-header">
         <div>
           <h2 class="page-title">Sesión de Repaso</h2>
-          <p class="page-desc" style="margin:0">Sistema de repetición espaciada.</p>
+          <p class="page-desc" style="margin:0">Del chino y el pinyin al significado. Practica a tu ritmo.</p>
         </div>
       </div>
+      <div id="review-options"></div>
+      <p id="review-available" class="practice-hint"></p>
       <div id="review-content"></div>
     </div>
 
@@ -622,8 +624,8 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       <div class="card" style="margin-bottom:18px;display:flex;align-items:center;gap:14px">
         <div class="io-icon" style="background:var(--green-bg);color:var(--green)">☁</div>
         <div>
-          <div class="io-title">Persistencia compartida</div>
-          <div class="io-desc" style="margin:0">Abre la aplicación mediante <strong>server.py</strong> para guardar en la base compartida y verla desde otros dispositivos de tu red. Si abres el HTML directamente, seguirá funcionando con guardado local.</div>
+          <div class="io-title">Una cuenta, todos tus dispositivos</div>
+          <div class="io-desc" style="margin:0">Inicia sesión con el mismo correo y combina la biblioteca de cada dispositivo una vez. Cuando aparezca <strong>Sincronizado</strong>, las palabras, frases y estados estarán guardados en tu cuenta. Se conserva una copia local para recuperar tus datos.</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
@@ -676,13 +678,14 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
   <div class="modal quick-add-modal">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Añadir palabra por pinyin</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:3px">Escribe sin tonos y selecciona la palabra correcta.</div>
+        <div class="modal-title">Amplía tu vocabulario</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">Busca en chino, pinyin sin tonos o inglés. Selecciona el significado correcto.</div>
       </div>
       <button class="modal-close" onclick="closeModal('modal-quick-add')">✕</button>
     </div>
     <div class="modal-body">
-      <input class="form-input quick-add-input" id="quick-pinyin" placeholder="Ejemplo: guo" autocomplete="off" oninput="renderQuickAddMatches(this.value)">
+      <label class="sr-only" for="quick-pinyin">Chino, pinyin o inglés</label>
+      <input class="form-input quick-add-input" id="quick-pinyin" placeholder="Ejemplo: guo, xuexi, football" autocomplete="off" oninput="renderQuickAddMatches(this.value)">
       <div class="quick-results" id="quick-add-results"></div>
     </div>
   </div>
@@ -852,6 +855,9 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="progress.js"></script>
 <script src="supabase-config.js"></script>
 <script src="sync.js"></script>
+<script src="review.js"></script>
+<script src="knowledge-sphere.js"></script>
+<script src="lexical-search.js"></script>
 <script>
 // ============================================================
 // STATE / DATABASE (shared API with local browser fallback)
@@ -999,6 +1005,8 @@ const pageTitles = {
 };
 
 function showPage(id) {
+  document.querySelectorAll('.mobile-dock button').forEach(button=>button.setAttribute('aria-current',button.dataset.page===id?'page':'false'));
+  if (id !== 'graph') KnowledgeSphere.stop();
   document.querySelector('.app').classList.toggle('graph-mode', id === 'graph');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1032,9 +1040,10 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 
 function openAddWord(editId) {
   if (!editId) {
+    window.quickAddRequestId=(window.quickAddRequestId||0)+1;
     window.quickAddMatches = [];
     document.getElementById('quick-pinyin').value = '';
-    document.getElementById('quick-add-results').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Empieza escribiendo el pinyin de una palabra.</div>';
+    document.getElementById('quick-add-results').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Escribe pinyin sin tonos, chino o una palabra en inglés.</div>';
     openModal('modal-quick-add');
     setTimeout(() => document.getElementById('quick-pinyin').focus(), 150);
     return;
@@ -1508,203 +1517,11 @@ function filterByCategory(catId) {
 // ============================================================
 // RENDER: GRAPH (D3)
 // ============================================================
-let simulation, svg, g, zoom;
-let graphLanguage = 'zh';
-
-function setGraphLanguage(language) {
-  graphLanguage = language;
-  document.getElementById('graph-lang-zh').classList.toggle('active', language === 'zh');
-  document.getElementById('graph-lang-pinyin').classList.toggle('active', language === 'pinyin');
-  renderGraph();
-}
-
-function renderGraph() {
-  const container = document.getElementById('graph-container');
-  const svgEl = document.getElementById('graph-svg');
-  svgEl.innerHTML = '';
-  if (DB.words.length === 0) {
-    svgEl.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--text2)" font-size="14" font-family="DM Sans">Añade palabras para ver el grafo</text>';
-    return;
-  }
-
-  const width = container.offsetWidth;
-  const height = container.offsetHeight;
-
-  svg = d3.select('#graph-svg')
-    .attr('width', width).attr('height', height);
-
-  zoom = d3.zoom()
-    .scaleExtent([0.2, 4])
-    .on('zoom', (event) => g.attr('transform', event.transform));
-  svg.call(zoom);
-
-  g = svg.append('g');
-  const defs = svg.append('defs');
-  const glow = defs.append('filter').attr('id','node-glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
-  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
-  const merge = glow.append('feMerge');
-  merge.append('feMergeNode').attr('in','blur');
-  merge.append('feMergeNode').attr('in','SourceGraphic');
-
-  // Build nodes and links
-  const nodes = DB.words.slice(0, 180).map(w => ({
-    id: w.id, zh: w.zh, pinyin: w.pinyin, translation: w.translation,
-    hsk: w.hsk, category: w.category
-  }));
-  const nodeIds = new Set(nodes.map(n => n.id));
-
-  // Auto-create links from same category
-  const links = [...DB.relations.filter(r => nodeIds.has(r.from) && nodeIds.has(r.to)).map(r => ({source:r.from,target:r.to,type:r.type}))];
-  const catGroups = {};
-  nodes.forEach(n => { if (n.category) { (catGroups[n.category]||(catGroups[n.category]=[])).push(n.id); } });
-  Object.values(catGroups).forEach(ids => {
-    for (let i = 0; i < ids.length - 1 && i < 3; i++) {
-      links.push({source:ids[i],target:ids[i+1],type:'category'});
-    }
-  });
-
-  // Color by category
-  const catColors = ['#c9500a','#1757a8','#1a7a4a','#6b3fa0','#b8860b','#c0392b','#0f766e','#7c3aed'];
-  const catColorMap = {};
-  DB.categories.forEach((c,i) => { catColorMap[c.id] = catColors[i % catColors.length]; });
-  const activeCategories = DB.categories.filter(c => nodes.some(n => n.category === c.id));
-  const categoryCenters = {};
-  const orbit = Math.min(width, height) * 0.32;
-  activeCategories.forEach((category, index) => {
-    const angle = (Math.PI * 2 * index / Math.max(activeCategories.length, 1)) - Math.PI / 2;
-    categoryCenters[category.id] = {
-      x: width / 2 + Math.cos(angle) * orbit,
-      y: height / 2 + Math.sin(angle) * orbit
-    };
-  });
-  const uncategorizedCenter = {x:width/2,y:height/2};
-
-  const zones = g.append('g').attr('pointer-events','none');
-  zones.selectAll('text').data(activeCategories).join('text')
-    .attr('class','graph-zone-label')
-    .attr('x',d=>categoryCenters[d.id].x)
-    .attr('y',d=>categoryCenters[d.id].y - 78)
-    .attr('text-anchor','middle')
-    .text(d=>d.name);
-
-  // Links
-  const link = g.append('g').selectAll('line').data(links).join('line')
-    .attr('class','graph-link').attr('stroke', '#3e6a91').attr('stroke-width', 1).attr('stroke-opacity', 0.45);
-
-  // Nodes
-  const node = g.append('g').selectAll('g').data(nodes).join('g')
-    .attr('class','knowledge-node')
-    .attr('cursor', 'pointer')
-    .call(d3.drag()
-      .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
-      .on('drag', (event, d) => { d.fx=event.x; d.fy=event.y; })
-      .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }))
-    .on('mouseover', showTooltip)
-    .on('mouseout', hideTooltip)
-    .on('click', (event, d) => { event.stopPropagation(); showTooltip(event, d, true); });
-
-  node.append('polygon')
-    .attr('class','graph-node-shape')
-    .attr('points','-42,-20 34,-20 44,-10 44,20 -34,20 -44,10 -44,-20')
-    .attr('fill', '#0d1420')
-    .attr('fill-opacity', 0.94)
-    .attr('stroke', d => catColorMap[d.category] || '#4dd8ff')
-    .attr('stroke-width', 1.2)
-    .attr('filter','url(#node-glow)');
-
-  node.append('text')
-    .text(d => graphLanguage === 'pinyin' ? d.pinyin : d.zh)
-    .attr('text-anchor', 'middle')
-    .attr('dominant-baseline', 'central')
-    .attr('font-family', graphLanguage === 'pinyin' ? "'DM Sans', sans-serif" : "'Noto Sans SC', sans-serif")
-    .attr('font-size', d => graphLanguage === 'pinyin' ? 10 : 14)
-    .attr('fill', '#dff8ff')
-    .attr('font-weight', '500');
-
-  simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d=>d.id).distance(125).strength(0.35))
-    .force('charge', d3.forceManyBody().strength(-170))
-    .force('x',d3.forceX(d=>(categoryCenters[d.category]||uncategorizedCenter).x).strength(.24))
-    .force('y',d3.forceY(d=>(categoryCenters[d.category]||uncategorizedCenter).y).strength(.24))
-    .force('collision', d3.forceCollide().radius(54))
-    .on('tick', () => {
-      link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
-      node.attr('transform', d => `translate(${d.x},${d.y})`);
-    });
-}
-
-function showTooltip(event, d, sticky) {
-  const tt = document.getElementById('node-tooltip');
-  document.getElementById('tt-zh').textContent = d.zh;
-  document.getElementById('tt-pinyin').textContent = d.pinyin;
-  document.getElementById('tt-trans').textContent = d.translation;
-  const rels = DB.relations.filter(r => r.from === d.id || r.to === d.id);
-  document.getElementById('tt-relations').innerHTML = rels.map(r => {
-    const otherId = r.from === d.id ? r.to : r.from;
-    const other = DB.words.find(w => w.id === otherId);
-    if (!other) return '';
-    const typeClass = {synonym:'rel-synonym',antonym:'rel-antonym',family:'rel-family',theme:'rel-theme'}[r.type] || 'rel-theme';
-    const typeLabel = {synonym:'Sinónimo',antonym:'Antónimo',family:'Familia léxica',category:'Misma categoría',theme:'Temática'}[r.type] || r.type;
-    return `<span class="rel-badge ${typeClass}">${typeLabel}: ${other.zh}</span>`;
-  }).join('');
-  const rect = document.getElementById('graph-container').getBoundingClientRect();
-  let x = event.clientX - rect.left + 12;
-  let y = event.clientY - rect.top + 12;
-  if (x + 240 > rect.width) x = event.clientX - rect.left - 200;
-  tt.style.left = x + 'px';
-  tt.style.top = y + 'px';
-  tt.classList.add('visible');
-}
-
-function hideTooltip() {
-  document.getElementById('node-tooltip').classList.remove('visible');
-}
-
-function resetZoom() {
-  if (svg && zoom) svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(0,0).scale(1));
-}
-
-function addRelationMode() {
-  showToast('Haz clic en dos palabras en el diccionario para conectarlas (función en desarrollo)');
-}
-
-function searchNode(query) {
-  if (!g) return;
-  const normalizedQuery = normalizeText(query);
-  g.selectAll('.graph-node-shape')
-    .attr('stroke-width', d => normalizeText(`${d.zh} ${d.pinyin} ${d.translation}`).includes(normalizedQuery) && normalizedQuery ? 3 : 1.2)
-    .attr('fill', d => normalizeText(`${d.zh} ${d.pinyin} ${d.translation}`).includes(normalizedQuery) && normalizedQuery ? '#163044' : '#0d1420');
-}
-
-function suggestGraphMatches(query) {
-  const results = document.getElementById('graph-search-results');
-  const normalized = normalizeText(query);
-  searchNode(query);
-  if (!normalized) {
-    results.classList.remove('open');
-    results.innerHTML = '';
-    return;
-  }
-  const matches = DB.words.filter(w => normalizeText(`${w.zh} ${w.pinyin} ${w.translation}`).includes(normalized)).slice(0,12);
-  results.innerHTML = matches.map(w => `
-    <button class="graph-search-item" onclick="focusGraphNode('${w.id}')">
-      <span style="font-family:var(--font-zh);font-size:19px">${w.zh}</span>
-      <span><strong style="color:#4dd8ff">${w.pinyin}</strong><br><small style="color:#91a7c7">${w.translation}</small></span>
-    </button>`).join('') || `<div style="padding:12px;color:#91a7c7;font-size:12px">Sin coincidencias</div>`;
-  results.classList.add('open');
-}
-
-function focusGraphNode(id) {
-  if (!g || !svg || !zoom) return;
-  const selection = g.selectAll('.knowledge-node').filter(d => d.id === id);
-  const datum = selection.datum();
-  if (!datum) return;
-  const container = document.getElementById('graph-container');
-  svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity.translate(container.offsetWidth/2,container.offsetHeight/2).scale(1.7).translate(-datum.x,-datum.y));
-  g.selectAll('.graph-node-shape').attr('stroke-width',1.2);
-  selection.select('.graph-node-shape').attr('stroke-width',3).attr('fill','#163044');
-  document.getElementById('graph-search-results').classList.remove('open');
-}
+function renderGraph() { KnowledgeSphere.render(); }
+function resetZoom() { KnowledgeSphere.reset(); }
+function setGraphLanguage(language) { KnowledgeSphere.setLanguage(language); }
+function suggestGraphMatches(query) { KnowledgeSphere.search(query); }
+function focusGraphNode(id) { KnowledgeSphere.focus(id); }
 
 // ============================================================
 // RENDER: RECOMMENDATIONS
@@ -1762,108 +1579,8 @@ function addRecommended(zh, pinyin, translation, hsk) {
 // ============================================================
 // RENDER: REVIEW (SRS simplified)
 // ============================================================
-let reviewQueue = [];
-let reviewIdx = 0;
-let reviewShowing = false;
-
-function renderReview() {
-  reviewQueue = DB.words
-    .filter(w => {
-      const next = new Date(w.nextReview || 0);
-      return (w.status || 'learning') !== 'planned' && next <= new Date();
-    })
-    .sort((a,b) => new Date(a.nextReview) - new Date(b.nextReview))
-    .slice(0, 20);
-  reviewIdx = 0;
-  reviewShowing = false;
-  renderReviewCard();
-}
-
-function renderReviewCard() {
-  const el = document.getElementById('review-content');
-  if (reviewQueue.length === 0) {
-    el.innerHTML = `<div class="card" style="max-width:480px;margin:0 auto;text-align:center;padding:48px 24px">
-      <div style="font-size:48px;margin-bottom:12px">🎉</div>
-      <div style="font-size:18px;font-weight:600;margin-bottom:8px">¡Sin palabras pendientes!</div>
-      <div style="font-size:14px;color:var(--text2);margin-bottom:20px">Todas tus palabras están al día. Vuelve más tarde o añade nuevas.</div>
-      <button class="btn btn-primary" onclick="reviewAll()">Repasar todas</button>
-    </div>`;
-    return;
-  }
-  const total = reviewQueue.length;
-  const current = reviewQueue[reviewIdx];
-  const progress = reviewIdx / total * 100;
-  el.innerHTML = `
-    <div style="max-width:480px;margin:0 auto">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-        <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${progress}%"></div></div>
-        <span style="font-size:12px;color:var(--text2)">${reviewIdx}/${total}</span>
-      </div>
-      <div class="card" style="text-align:center;padding:40px 24px">
-        <div style="font-size:12px;color:var(--text3);margin-bottom:20px;text-transform:uppercase;letter-spacing:0.06em">¿Cuál es la traducción?</div>
-        <div style="font-family:var(--font-zh);font-size:64px;font-weight:500;color:var(--text);margin-bottom:8px;line-height:1">${current.zh}</div>
-        ${reviewShowing ? `
-          <div style="font-size:16px;font-style:italic;color:var(--accent);margin-bottom:4px">${current.pinyin}</div>
-          <div style="font-size:18px;font-weight:500;color:var(--text);margin-bottom:8px">${current.translation}</div>
-          ${current.exampleZh ? `<div style="font-size:13px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:20px;text-align:left">
-            <div style="font-family:var(--font-zh)">${current.exampleZh}</div>
-            <div style="font-size:12px;margin-top:2px">${current.exampleEs||''}</div>
-          </div>` : '<div style="height:20px"></div>'}
-          <div class="review-btns">
-            <button class="review-btn review-hard" onclick="reviewAnswer('hard')">Difícil</button>
-            <button class="review-btn review-medium" onclick="reviewAnswer('medium')">Bien</button>
-            <button class="review-btn review-easy" onclick="reviewAnswer('easy')">Fácil</button>
-          </div>
-        ` : `
-          <button class="btn btn-secondary" style="margin-top:24px" onclick="showAnswer()">Ver respuesta</button>
-        `}
-      </div>
-      ${reviewIdx > 0 ? `<div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text3)">Completa ${total - reviewIdx} más para terminar</div>` : ''}
-    </div>`;
-}
-
-function showAnswer() {
-  reviewShowing = true;
-  renderReviewCard();
-}
-
-function reviewAnswer(rating) {
-  const word = reviewQueue[reviewIdx];
-  const w = DB.words.find(w => w.id === word.id);
-  if (w) {
-    w.reviewCount = (w.reviewCount || 0) + 1;
-    const days = rating === 'easy' ? 7 : rating === 'medium' ? 3 : 1;
-    const next = new Date();
-    next.setDate(next.getDate() + days);
-    w.nextReview = next.toISOString();
-    w.difficulty = rating === 'hard' ? Math.min((w.difficulty||0)+1,3) : Math.max((w.difficulty||0)-1,0);
-    saveDB();
-  }
-  reviewIdx++;
-  if (reviewIdx >= reviewQueue.length) {
-    renderFinishedReview();
-  } else {
-    reviewShowing = false;
-    renderReviewCard();
-  }
-}
-
-function reviewAll() {
-  reviewQueue = DB.words.slice(0, 20);
-  reviewIdx = 0;
-  reviewShowing = false;
-  renderReviewCard();
-}
-
-function renderFinishedReview() {
-  document.getElementById('review-content').innerHTML = `
-    <div class="card" style="max-width:480px;margin:0 auto;text-align:center;padding:48px 24px">
-      <div style="font-size:48px;margin-bottom:12px">🏆</div>
-      <div style="font-size:20px;font-weight:600;margin-bottom:8px">¡Sesión completada!</div>
-      <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Repasaste ${reviewQueue.length} palabras. ¡Excelente trabajo!</div>
-      <button class="btn btn-primary" onclick="renderReview()">Nueva sesión</button>
-    </div>`;
-}
+function renderReview() { Review.init(); }
+function reviewAll() { Review.start(); }
 
 // ============================================================
 // IMPORT / EXPORT
@@ -2010,42 +1727,7 @@ function escapeQuickHtml(value = '') {
 }
 
 async function getQuickPinyinMatches(query) {
-  const normalized = normalizeText(query);
-  if (!normalized) return {matches:[], exactCount:0, source:'local'};
-  const local = getLocalPinyinMatches(query);
-  let remote = [];
-  let exactCount = 0;
-  
-  // Usar índice CEDICT cargado localmente
-  if (CEDICT_INDEX && normalized) {
-    const exact = CEDICT_INDEX[normalized] || [];
-    exactCount = exact.length;
-    const prefix = [];
-    if (exactCount > 0) {
-      remote.push(...exact);
-    }
-    // Buscar prefijos
-    for (const key of Object.keys(CEDICT_INDEX)) {
-      if (key !== normalized && key.startsWith(normalized)) {
-        prefix.push(...CEDICT_INDEX[key]);
-        if (prefix.length >= 200) break;
-      }
-    }
-    remote.push(...prefix.slice(0, 200));
-  }
-  
-  const seen = new Set();
-  const matches = [...local, ...remote].filter(item => {
-    const key = `${item.zh}|${normalizeText(item.pinyin)}|${item.translation}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a,b) => {
-    const aExact = normalizeText(a.pinyin) === normalized ? 0 : 1;
-    const bExact = normalizeText(b.pinyin) === normalized ? 0 : 1;
-    return aExact - bExact || a.pinyin.length - b.pinyin.length || a.zh.localeCompare(b.zh);
-  });
-  return {matches, exactCount, source:remote.length ? 'CC-CEDICT' : 'local'};
+  return LexicalSearch.search(query);
 }
 
 async function renderQuickAddMatches(query) {
@@ -2054,16 +1736,18 @@ async function renderQuickAddMatches(query) {
   window.quickAddRequestId = requestId;
   if (!normalizeText(query)) {
     window.quickAddMatches = [];
-    results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Empieza escribiendo el pinyin de una palabra.</div>';
+    results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Escribe pinyin sin tonos, chino o una palabra en inglés.</div>';
     return;
   }
   results.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3)">Buscando en el diccionario completo...</div>';
+  await new Promise(resolve=>setTimeout(resolve,160));
+  if (requestId !== window.quickAddRequestId) return;
   const {matches, exactCount, source} = await getQuickPinyinMatches(query);
   if (requestId !== window.quickAddRequestId) return;
   window.quickAddMatches = matches;
   const summary = source === 'CC-CEDICT'
     ? `<div style="padding:0 2px 8px;color:var(--text3);font-size:12px">${exactCount} coincidencias exactas · ${matches.length} resultados mostrados · CC-CEDICT</div>`
-    : '<div style="padding:0 2px 8px;color:var(--text3);font-size:12px">Mostrando coincidencias locales. Inicia la página con server.py para consultar el diccionario completo.</div>';
+    : '<div style="padding:0 2px 8px;color:var(--text3);font-size:12px">Diccionario completo no disponible. Mostrando tu biblioteca local; comprueba la conexión y vuelve a buscar.</div>';
   results.innerHTML = matches.length ? summary + matches.map((item,index) => `
     <button type="button" class="quick-result" onclick="addQuickPinyinMatch(${index})">
       <span class="quick-result-zh">${escapeQuickHtml(item.zh)}</span>
@@ -2222,7 +1906,6 @@ async function loadCEDICTIndex() {
 }
 
 async function init() {
-  await loadCEDICTIndex();
   await loadDB();
   seedDemoData();
   if (localStorage.getItem('hanzivault_sidebar') === 'collapsed') {
@@ -2230,6 +1913,10 @@ async function init() {
     document.getElementById('collapse-icon').textContent = '»';
   }
   updateNavBadges();
+  const dock=document.createElement('nav');dock.className='mobile-dock';dock.setAttribute('aria-label','Navegación principal');
+  [['dashboard','◈','Inicio'],['dictionary','字','Palabras'],['grammar','句','Frases'],['review','↻','Repasar'],['graph','◎','Mapa'],['import-export','⇅','Cuenta']].forEach(([id,icon,label])=>{
+    const button=document.createElement('button');button.type='button';button.dataset.page=id;button.setAttribute('aria-current',id==='dashboard'?'page':'false');button.innerHTML=`<span>${icon}</span>${label}`;button.onclick=()=>showPage(id);dock.appendChild(button);
+  });document.body.appendChild(dock);
   renderDashboard();
   const requestedPage = new URLSearchParams(location.search).get('page');
   VaultSync.init();

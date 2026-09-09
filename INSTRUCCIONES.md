@@ -12,7 +12,15 @@ Para actualizar la fuente, ejecuta `python import-workbook.py "ruta/al/archivo.x
 
 En GitHub Pages, los cambios persisten en el navegador. Para trasladarlos a otro equipo usa Importar / Exportar; para compartir automáticamente la misma base utiliza el servidor descrito abajo.
 
-También puedes activar la integración de Supabase siguiendo [SUPABASE.md](SUPABASE.md). Una vez configurada, accede con el mismo correo en Importar / Exportar en cada dispositivo y combina su biblioteca para empezar a sincronizar por Internet. Hasta configurar el proyecto, la sincronización en la nube permanece desactivada y los datos siguen guardándose localmente.
+Supabase ya está configurado. Accede con el mismo correo en Cuenta / Importar y Exportar en cada dispositivo y combina su biblioteca una vez. Consulta [SUPABASE.md](SUPABASE.md). Hasta iniciar sesión y combinar, cada navegador conserva su biblioteca local independiente.
+
+## Repasar y explorar
+
+Repasar muestra el chino junto al pinyin antes de descubrir la traducción. Los filtros permiten seleccionar varios estados a la vez (En proceso y Por conocer por defecto), palabras y/o frases y sesiones de 10, 20, 40 o 100 fichas. La respuesta es una autoevaluación: no se interpreta ni puntúa tu voz. Mostrar significado descubre la respuesta; la valoración programa el próximo repaso sin cambiar tu grado de dominio.
+
+Añadir permite buscar pinyin sin tonos, caracteres chinos o significados ingleses, como `football`. Ofrece `足球` (fútbol) y `踢足球` (jugar al fútbol). Las definiciones generales provienen de CC-CEDICT en inglés. La carga y búsqueda del diccionario se realizan en segundo plano al buscar por primera vez.
+
+El mapa es una esfera tridimensional de toda la biblioteca, con agrupaciones por categoría. Arrastra para girar, usa rueda o pellizco para acercar, y busca para seleccionar una palabra. Permite pausar, cambiar entre chino/pinyin y filtrar categorías. Cada conexión indica si une palabras de una categoría, caracteres compartidos o una relación guardada; las relaciones automáticas no implican sinonimia.
 
 ## Abrir con persistencia compartida
 

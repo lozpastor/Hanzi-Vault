@@ -6,7 +6,17 @@ const VaultSync = (() => {
   const configured = Boolean(config.url && config.publishableKey);
   const arrays = ['words','grammar','categories','relations','learningEvents'];
   const rowKey = row => row.id || JSON.stringify(row);
-  const message = value => {document.getElementById('account-message').textContent = value;};
+  const message = value => {
+    document.getElementById('account-message').textContent = value;
+    const notice=document.getElementById('device-sync-notice');
+    if(notice){
+      const failed=document.getElementById('sync-label')?.textContent==='Sin conexión';
+      notice.hidden=Boolean(user&&baseline&&!failed);
+      notice.querySelector('strong').textContent=failed?'Hay cambios pendientes de sincronizar':user?'Combina las palabras de este dispositivo':'Conecta tu biblioteca entre dispositivos';
+      notice.querySelector('span').textContent=failed?value:user?'Has iniciado sesión. Combina esta biblioteca con tu cuenta una vez para compartir sus palabras.':configured?'Inicia sesión con el mismo correo en tus dispositivos y combina sus bibliotecas.':'Tus cambios se guardan solo en este navegador. La conexión compartida aún no está configurada.';
+      notice.querySelector('button').textContent=user?'Ver sincronización':'Conectar mi cuenta';
+    }
+  };
   const baseKey = id => `hanzivault_sync_base:${id}`;
   let conflicts = 0;
 
@@ -130,7 +140,7 @@ const VaultSync = (() => {
       try {baseline=JSON.parse(localStorage.getItem(baseKey(user.id)));} catch {}
     }
     localStorage.setItem('hanzivault_owner',user.id);
-    if (baseline) sync();
+    if (baseline) {message('Recuperando tu biblioteca compartida…');sync();}
     else {
       document.getElementById('account-combine').hidden=false;
       message('Sesión iniciada. Combina esta biblioteca con tu cuenta para activar la sincronización. Si una ficha ya existe en la nube, se conserva su estado. Se guardará una copia local previa.');
@@ -139,8 +149,12 @@ const VaultSync = (() => {
   async function login(event) {
     event.preventDefault();
     const email=document.getElementById('account-email').value.trim();
-    const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
-    message(error ? error.message : 'Revisa tu correo y abre el enlace de acceso en este dispositivo.');
+    const button=event.target.querySelector('button');button.disabled=true;
+    try{
+      const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+      message(error ? error.message : 'Revisa tu correo y abre el enlace de acceso en este dispositivo. Si no llega, comprueba spam; el correo del proyecto debe estar autorizado por Supabase.');
+    }catch(error){message('No se pudo enviar el enlace: '+error.message);}
+    finally{button.disabled=false;}
   }
   async function logout() {
     if (busy) {message('Espera a que termine la sincronización antes de cerrar sesión.');return;}
@@ -150,6 +164,10 @@ const VaultSync = (() => {
     if(error) message(error.message);
   }
   async function init() {
+    const notice=document.createElement('div');notice.id='device-sync-notice';notice.className='sync-notice';
+    notice.innerHTML='<div><strong>Conecta tu biblioteca entre dispositivos</strong><span></span></div><button class="btn btn-secondary" type="button">Conectar mi cuenta</button>';
+    notice.querySelector('button').onclick=()=>{showPage('import-export');document.getElementById('account-panel').scrollIntoView({block:'start',behavior:'smooth'});};
+    document.querySelector('.content').prepend(notice);
     const host=document.getElementById('account-panel');
     host.innerHTML=`<h3>Tu cuenta y tus dispositivos</h3><p id="account-message" role="status"></p><form id="account-login" hidden><label for="account-email">Correo electrónico</label><input id="account-email" class="form-input" type="email" autocomplete="email" required><button class="btn btn-primary" type="submit">Recibir enlace de acceso</button></form><button id="account-combine" class="btn btn-primary" hidden>Combinar y activar sincronización</button><button id="account-sync" class="btn btn-secondary" hidden>Sincronizar ahora</button><button id="account-logout" class="btn btn-secondary" hidden>Cerrar sesión</button><button id="account-backup" class="btn btn-secondary">Descargar copia previa a sincronizar</button>`;
     document.getElementById('account-backup').onclick=()=>{

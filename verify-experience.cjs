@@ -1,0 +1,62 @@
+const {chromium}=require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const server=http.createServer((req,res)=>{
+  const name=req.url==='/'?'index.html':req.url.split('?')[0].slice(1);
+  if(!/^[\w-]+\.(html|js|css|json)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
+  res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(name));
+});
+(async()=>{
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const browser=await chromium.launch({channel:'msedge',headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
+    page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/supabase-config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE={};'}));
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);await page.waitForSelector('.learning-total');
+    await page.evaluate(()=>showPage('review'));await page.waitForSelector('.practice-pinyin');
+    assert.equal(await page.locator('input[value=planned][name=review-state]').isChecked(),true);
+    assert.equal(await page.locator('input[value=learning][name=review-state]').isChecked(),true);
+    assert.equal(await page.locator('input[value=learned][name=review-state]').isChecked(),false);
+    assert.equal(await page.locator('.practice-meaning').count(),0);
+    await page.screenshot({path:'qa-review.png'});
+    await page.locator('input[value=words][name=review-type]').uncheck();
+    await page.locator('input[value=learning][name=review-state]').uncheck();
+    const hanzi=await page.locator('.practice-hanzi').textContent();
+    assert(await page.evaluate(zh=>DB.grammar.some(i=>i.pattern===zh&&i.status==='planned'),hanzi));
+    await page.locator('.practice-reveal').click();await page.waitForSelector('.practice-meaning');
+    await page.locator('.practice-ratings button').last().click();
+    assert(await page.evaluate(zh=>DB.grammar.some(i=>i.pattern===zh&&i.lastReviewedAt),hanzi));
+    await page.evaluate(()=>openAddWord());
+    await page.locator('#quick-pinyin').fill('football');
+    await page.waitForFunction(()=>window.quickAddMatches?.some(i=>i.zh==='足球'),null,{timeout:60000});
+    assert(await page.evaluate(()=>window.quickAddMatches.some(i=>i.zh==='踢足球')));
+    assert.equal(await page.evaluate(()=>window.quickAddMatches[0].zh),'足球');
+    assert.equal(await page.evaluate(()=>window.quickAddMatches[1].zh),'踢足球');
+    await page.screenshot({path:'qa-search.png'});
+    await page.locator('#quick-pinyin').fill('shui');
+    await page.waitForFunction(()=>window.quickAddMatches?.some(i=>i.zh==='水'));
+    for(const zh of ['水','税','睡']) assert(await page.evaluate(zh=>window.quickAddMatches.some(i=>i.zh===zh),zh));
+    await page.evaluate(()=>{closeModal('modal-quick-add');showPage('graph');});
+    await page.waitForSelector('#sphere-canvas');await page.waitForTimeout(300);
+    assert.equal(await page.locator('#sphere-canvas').count(),1);
+    await page.locator('#sphere-rotate').click();
+    await page.screenshot({path:'qa-sphere.png'});
+    await page.locator('#sphere-pinyin').click();assert.equal(await page.locator('#sphere-pinyin').getAttribute('aria-pressed'),'true');
+    const lastWord=await page.evaluate(()=>DB.words[DB.words.length-1].zh);
+    await page.locator('#graph-search').fill(lastWord);
+    await page.locator('#graph-search-results button').first().click();
+    assert(await page.locator('#sphere-detail h3').textContent());
+    await page.screenshot({path:'qa-sphere-selected.png'});
+    await page.setViewportSize({width:390,height:844});
+    await page.evaluate(()=>showPage('review'));await page.waitForSelector('.practice-pinyin');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.screenshot({path:'qa-mobile-review.png'});
+    await page.evaluate(()=>showPage('graph'));await page.waitForTimeout(200);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.screenshot({path:'qa-mobile-sphere.png'});
+    assert(await page.evaluate(()=>document.getElementById('sphere-canvas').height>300));
+    await page.locator('.mobile-dock button[data-page=review]').click();await page.waitForSelector('.practice-pinyin');
+    assert.deepEqual(errors,[]);
+    console.log('PASS: mixed review filters, pinyin before answer, phrase ratings, English football, pinyin homophones, sphere controls/search, desktop/mobile, no runtime errors');
+  }finally{await browser.close();server.close();}
+})().catch(error=>{console.error(error);server.close();process.exitCode=1;});
