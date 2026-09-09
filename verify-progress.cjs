@@ -17,7 +17,7 @@ const server = http.createServer((req,res) => {
   const browser = await chromium.launch({channel:'msedge',headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1440,height:1000}});
-    await page.route('**/supabase-config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE = {};'}));
+    await page.route('**/supabase-config.js*',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE = {};'}));
     const errors=[]; page.on('pageerror',err=>errors.push(err.message));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForSelector('.learning-total');

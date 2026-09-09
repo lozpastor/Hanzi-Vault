@@ -11,7 +11,7 @@ const server=http.createServer((req,res)=>{
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
-    await page.route('**/supabase-config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE={};'}));
+    await page.route('**/supabase-config.js*',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE={};'}));
     await page.goto(`http://127.0.0.1:${server.address().port}/`);await page.waitForSelector('.learning-total');
     await page.evaluate(()=>showPage('review'));await page.waitForSelector('.practice-pinyin');
     assert.equal(await page.locator('input[value=planned][name=review-state]').isChecked(),true);

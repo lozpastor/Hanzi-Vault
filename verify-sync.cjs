@@ -15,7 +15,7 @@ const server=http.createServer((req,res)=>{
     for(let i=0;i<2;i++){
       const context=await browser.newContext();
       const page=await context.newPage();
-      await page.route('**/supabase-config.js',route=>route.fulfill({contentType:'text/javascript',body:"window.HANZI_SUPABASE={url:'https://example.supabase.co',publishableKey:'test'};"}));
+      await page.route('**/supabase-config.js*',route=>route.fulfill({contentType:'text/javascript',body:"window.HANZI_SUPABASE={url:'https://example.supabase.co',publishableKey:'test'};"}));
       await page.exposeFunction('mockRead',()=>({data:remote?{document:remote,revision}:null,error:null}));
       await page.exposeFunction('mockWrite',args=>{
         if(args.expected_revision!==revision)return {data:{conflict:true},error:null};
