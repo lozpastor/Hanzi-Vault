@@ -618,6 +618,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
     <div class="page" id="page-import-export">
       <h2 class="page-title">Importar / Exportar</h2>
       <p class="page-desc">Haz copias de seguridad o migra tus datos.</p>
+      <section id="account-panel" class="card" style="margin-bottom:18px;line-height:1.8"></section>
       <div class="card" style="margin-bottom:18px;display:flex;align-items:center;gap:14px">
         <div class="io-icon" style="background:var(--green-bg);color:var(--green)">☁</div>
         <div>
@@ -849,6 +850,8 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="seed-data.js"></script>
 <script src="workbook-seed.js"></script>
 <script src="progress.js"></script>
+<script src="supabase-config.js"></script>
+<script src="sync.js"></script>
 <script>
 // ============================================================
 // STATE / DATABASE (shared API with local browser fallback)
@@ -862,7 +865,7 @@ let DB = {
 };
 
 let saveTimer;
-let cloudEnabled = location.protocol === 'http:' || location.protocol === 'https:';
+let cloudEnabled = !VaultSync.configured && (location.protocol === 'http:' || location.protocol === 'https:');
 let CEDICT_INDEX = null;  // Índice de diccionario cargado localmente
 
 function saveDB() {
@@ -873,6 +876,7 @@ function saveDB() {
   });
   DB.version = 2;
   localStorage.setItem('hanzivault_db', JSON.stringify(DB));
+  if (VaultSync.configured) {VaultSync.schedule();return;}
   setSyncStatus(cloudEnabled ? 'saving' : 'local');
   if (!cloudEnabled) return;
   clearTimeout(saveTimer);
@@ -2228,6 +2232,7 @@ async function init() {
   updateNavBadges();
   renderDashboard();
   const requestedPage = new URLSearchParams(location.search).get('page');
+  VaultSync.init();
   if (requestedPage && document.getElementById(`page-${requestedPage}`)) showPage(requestedPage);
   document.addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {

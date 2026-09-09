@@ -12,6 +12,8 @@ Para actualizar la fuente, ejecuta `python import-workbook.py "ruta/al/archivo.x
 
 En GitHub Pages, los cambios persisten en el navegador. Para trasladarlos a otro equipo usa Importar / Exportar; para compartir automáticamente la misma base utiliza el servidor descrito abajo.
 
+También puedes activar la integración de Supabase siguiendo [SUPABASE.md](SUPABASE.md). Una vez configurada, accede con el mismo correo en Importar / Exportar en cada dispositivo y combina su biblioteca para empezar a sincronizar por Internet. Hasta configurar el proyecto, la sincronización en la nube permanece desactivada y los datos siguen guardándose localmente.
+
 ## Abrir con persistencia compartida
 
 1. Ejecuta `python server.py` desde esta carpeta.
