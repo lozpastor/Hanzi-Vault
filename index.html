@@ -250,6 +250,17 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 .grammar-example-pinyin{font-size:12px;color:var(--accent);font-style:italic;margin-bottom:2px}
 .grammar-example-es{font-size:13px;color:var(--text2)}
 .grammar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.phrase-table-wrap{padding:0;overflow:auto;max-width:100%}
+.phrase-table{min-width:900px;table-layout:fixed}
+.phrase-table td{overflow-wrap:anywhere}
+.phrase-table th:nth-child(1),.phrase-table th:nth-child(3){width:20%}
+.phrase-table th:nth-child(2){width:16%}
+.phrase-table th:nth-child(4){width:17%}
+.phrase-table th:nth-child(5){width:11%}
+.phrase-table th:nth-child(6){width:7%}
+.phrase-table th:nth-child(7){width:9%}
+.phrase-results{font-size:12px;color:var(--text2);margin:0 0 16px}
+#page-grammar .filters-bar>*{max-width:100%}
 
 /* RECOMMENDATIONS */
 .rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:flex-start;gap:14px;transition:all var(--transition)}
@@ -541,14 +552,33 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
         <button class="btn btn-primary" onclick="openAddGrammar()">+ Añadir frase</button>
       </div>
       <div class="filters-bar">
-        <input class="form-input" id="phrase-search" oninput="renderGrammar()" placeholder="Buscar frase, pinyin o traducción..." style="flex:1;min-width:240px">
-        <select class="filter-select" id="phrase-status" onchange="renderGrammar()">
+        <input class="form-input" id="phrase-search" oninput="renderGrammar()" aria-label="Buscar frases" placeholder="Buscar frase, pinyin o traducción..." style="flex:1;min-width:200px">
+        <select class="filter-select" id="phrase-category" aria-label="Categoría de las frases" onchange="renderGrammar()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select class="filter-select" id="phrase-hsk" aria-label="Nivel HSK de las frases" onchange="renderGrammar()">
+          <option value="">Todos los niveles HSK</option>
+          <option value="1">HSK 1</option><option value="2">HSK 2</option><option value="3">HSK 3</option>
+          <option value="4">HSK 4</option><option value="5">HSK 5</option><option value="6">HSK 6</option>
+          <option value="none">Sin nivel asignado</option>
+        </select>
+        <select class="filter-select" id="phrase-status" aria-label="Estado de las frases" onchange="renderGrammar()">
           <option value="">Todos los estados</option>
           <option value="learning">En proceso</option>
           <option value="learned">Aprendido</option>
           <option value="planned">Por conocer</option>
         </select>
+        <select class="filter-select" id="phrase-sort" aria-label="Ordenar frases" onchange="renderGrammar()">
+          <option value="date-desc">Más recientes</option><option value="date-asc">Más antiguas</option>
+          <option value="zh-asc">A→Z (chino)</option><option value="es-asc">A→Z (español)</option>
+        </select>
+        <div class="view-toggle" role="group" aria-label="Disposición de frases">
+          <button type="button" class="view-btn active" id="phrase-view-cards" aria-pressed="true" onclick="setPhraseView('cards')">Tarjetas</button>
+          <button type="button" class="view-btn" id="phrase-view-table" aria-pressed="false" onclick="setPhraseView('table')">Tabla</button>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="clearPhraseFilters()">Limpiar filtros</button>
       </div>
+      <p id="phrase-results" class="phrase-results" role="status"></p>
       <div class="grammar-grid" id="grammar-grid"></div>
     </div>
 
@@ -1445,16 +1475,64 @@ function wordRowHTML(w) {
 // ============================================================
 // RENDER: GRAMMAR
 // ============================================================
+let phraseView=localStorage.getItem('hanzivault_phrase_view')==='table'?'table':'cards';
+function setPhraseView(view) {
+  phraseView=view==='table'?'table':'cards';
+  localStorage.setItem('hanzivault_phrase_view',phraseView);
+  renderGrammar();
+}
+function clearPhraseFilters() {
+  for(const id of ['phrase-search','phrase-category','phrase-hsk','phrase-status'])document.getElementById(id).value='';
+  document.getElementById('phrase-sort').value='date-desc';
+  renderGrammar();
+}
+function phraseRowHTML(g) {
+  const category=DB.categories.find(c=>c.id===g.category);
+  const date=new Date(g.date);
+  return `<tr>
+    <td class="zh-cell" lang="zh">${progressEscape(g.pattern)}</td>
+    <td class="pinyin-cell">${progressEscape(g.examplePinyin||g.pinyin||'')}</td>
+    <td>${progressEscape(g.meaning)}</td>
+    <td>${statusPickerHTML('phrase',g.id,g.status)}</td>
+    <td>${progressEscape(category?.name||'Sin categoría')}</td>
+    <td>${hskBadge(g)}</td>
+    <td>${Number.isNaN(date.getTime())?'':date.toLocaleDateString('es')}<div style="display:flex;gap:4px;margin-top:6px">
+      <button type="button" class="word-action-btn" onclick="openAddGrammar('${g.id}')" aria-label="Editar frase" title="Editar frase">✎</button>
+      <button type="button" class="word-action-btn" onclick="deleteGrammar('${g.id}')" aria-label="Eliminar frase" title="Eliminar frase" style="color:var(--red)">✕</button>
+    </div></td>
+  </tr>`;
+}
 function renderGrammar() {
   const grid = document.getElementById('grammar-grid');
+  const categorySelect=document.getElementById('phrase-category'),selectedCategory=categorySelect.value;
+  categorySelect.replaceChildren(new Option('Todas las categorías',''),...DB.categories.map(c=>new Option(c.name,c.id)));
+  categorySelect.value=selectedCategory;
+  const category=categorySelect.value,hsk=document.getElementById('phrase-hsk').value,sort=document.getElementById('phrase-sort').value;
+  grid.className=phraseView==='cards'?'grammar-grid':'';
+  for(const view of ['cards','table']){
+    const button=document.getElementById('phrase-view-'+view);
+    button.classList.toggle('active',phraseView===view);button.setAttribute('aria-pressed',String(phraseView===view));
+  }
   const query = normalizeText((document.getElementById('phrase-search') || {value:''}).value);
   const status = (document.getElementById('phrase-status') || {value:''}).value;
   const phrases = DB.grammar.filter(g => {
-    const searchable = normalizeText(`${g.pattern} ${g.meaning} ${g.examplePinyin || ''} ${g.explanation || ''}`);
-    return (!query || searchable.includes(query)) && (!status || (g.status || 'learning') === status);
+    const searchable = normalizeText([g.pattern,g.meaning,g.examplePinyin,g.pinyin,g.explanation,g.exampleZh,g.exampleEs,...(g.tags||[])].filter(Boolean).join(' '));
+    return (!query || searchable.includes(query)) && (!status || (g.status || 'learning') === status)
+      && (!category||g.category===category) && (!hsk||(hsk==='none'?!g.hsk:String(g.hsk)===hsk));
   });
+  phrases.sort((a,b)=>{
+    if(sort==='zh-asc')return String(a.pattern||'').localeCompare(String(b.pattern||''),'zh');
+    if(sort==='es-asc')return String(a.meaning||'').localeCompare(String(b.meaning||''),'es');
+    const delta=(Date.parse(a.date)||0)-(Date.parse(b.date)||0);
+    return sort==='date-asc'?delta:-delta;
+  });
+  document.getElementById('phrase-results').textContent=`${phrases.length} de ${DB.grammar.length} frases`;
   if (phrases.length === 0) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📐</div><div class="empty-title">Sin estructuras todavía</div><div class="empty-desc">Guarda patrones gramaticales para recordarlos fácilmente.</div></div>`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-title">${DB.grammar.length?'No se encontraron frases':'Todavía no hay frases'}</div><div class="empty-desc">${DB.grammar.length?'Prueba a cambiar o limpiar los filtros.':'Añade tu primera frase para empezar.'}</div></div>`;
+    return;
+  }
+  if(phraseView==='table'){
+    grid.innerHTML=`<div class="card phrase-table-wrap" role="region" aria-label="Tabla de frases, desplazable horizontalmente" tabindex="0"><table class="words-table phrase-table"><thead><tr><th scope="col">Chino</th><th scope="col">Pinyin</th><th scope="col">Traducción</th><th scope="col">Estado</th><th scope="col">Categoría</th><th scope="col">HSK</th><th scope="col">Fecha y acciones</th></tr></thead><tbody>${phrases.map(phraseRowHTML).join('')}</tbody></table></div>`;
     return;
   }
   grid.innerHTML = phrases.map(g => `
@@ -1464,11 +1542,12 @@ function renderGrammar() {
         <div style="display:flex;gap:4px">
           ${statusPickerHTML('phrase', g.id, g.status)}
           ${g.hsk ? `<span class="hsk hsk-${g.hsk}">HSK ${g.hsk}</span>` : ''}
-          <button class="word-action-btn" onclick="openAddGrammar('${g.id}')">✎</button>
-          <button class="word-action-btn" onclick="deleteGrammar('${g.id}')" style="color:var(--red)">✕</button>
+          <button class="word-action-btn" onclick="openAddGrammar('${g.id}')" aria-label="Editar frase" title="Editar frase">✎</button>
+          <button class="word-action-btn" onclick="deleteGrammar('${g.id}')" aria-label="Eliminar frase" title="Eliminar frase" style="color:var(--red)">✕</button>
         </div>
       </div>
       <div class="grammar-meaning">${g.meaning}</div>
+      ${g.category?`<div class="tag" style="margin-bottom:8px">${progressEscape(DB.categories.find(c=>c.id===g.category)?.name||'Sin categoría')}</div>`:''}
       ${g.pronunciationHint ? `<div style="font-size:12px;color:var(--text3);margin-bottom:10px">Tu pronunciación: /${progressEscape(g.pronunciationHint)}/</div>` : ''}
       ${g.examplePinyin ? `<div class="grammar-example-pinyin" style="margin-bottom:8px">${g.examplePinyin}</div>` : ''}
       ${g.explanation ? `<div class="grammar-explanation">${g.explanation}</div>` : ''}
