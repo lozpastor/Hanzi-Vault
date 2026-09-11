@@ -14,12 +14,13 @@ const server=http.createServer((req,res)=>{
     await page.route('**/supabase-config.js*',r=>r.fulfill({contentType:'text/javascript',body:"window.HANZI_SUPABASE={url:'https://test.supabase.co',publishableKey:'test'};"}));
     await page.addInitScript(()=>{
       window.failRead=false;window.cloud=JSON.parse(localStorage.getItem('test-cloud')||'{}');window.delay=80;
+      window.emailCalls=0;window.emailFailure=false;
       let callback;
       window.signIn=id=>{localStorage.setItem('test-session',id);callback('SIGNED_IN',{user:{id,email:id+'@example.com'}});};
       window.supabase={createClient:()=>({auth:{
         onAuthStateChange:fn=>{callback=fn;},
         getSession:async()=>{const id=localStorage.getItem('test-session');const session=id?{user:{id,email:id+'@example.com'}}:null;callback('INITIAL_SESSION',session);await new Promise(r=>setTimeout(r,30));return {data:{session}};},
-        signInWithOtp:async()=>({error:null}),
+        signInWithOtp:async()=>{window.emailCalls++;return {error:window.emailFailure?{code:'over_email_send_rate_limit',status:429,message:'email rate limit exceeded'}:null};},
         signOut:async()=>{localStorage.removeItem('test-session');callback('SIGNED_OUT',null);return {error:null};}
       },from:()=>({select:()=>({eq:(_field,id)=>({maybeSingle:async()=>{await new Promise(r=>setTimeout(r,window.delay));return window.failRead?{error:{message:'Prueba sin red'}}:{data:window.cloud[id]||null};}})})}),
       rpc:async(_name,args)=>{const id=localStorage.getItem('test-session'),row=window.cloud[id];if((row?.revision||0)!==args.expected_revision)return {data:{conflict:true}};window.cloud[id]={revision:(row?.revision||0)+1,document:args.payload};localStorage.setItem('test-cloud',JSON.stringify(window.cloud));return {data:{revision:window.cloud[id].revision}};}
@@ -31,6 +32,18 @@ const server=http.createServer((req,res)=>{
     await page.locator('#account-email').fill('a@example.com');
     await page.locator('#account-login button').click();
     assert.match(await page.locator('#account-message').textContent(),/Revisa tu correo/);
+    assert.equal(await page.locator('#account-login button').isDisabled(),true);
+    await page.evaluate(()=>document.getElementById('account-login').requestSubmit());
+    assert.equal(await page.evaluate(()=>emailCalls),1);
+    await page.evaluate(()=>{localStorage.removeItem('hanzivault_email_retry_at');emailFailure=true;});
+    await page.waitForFunction(()=>!document.querySelector('#account-login button').disabled);
+    await page.locator('#account-login button').click();
+    assert.match(await page.locator('#account-message').textContent(),/2 envíos por hora/);
+    assert.equal(await page.locator('#account-login button').isDisabled(),true);
+    await page.reload();
+    await page.waitForFunction(()=>document.getElementById('account-login')?.hidden===false);
+    await page.evaluate(()=>showPage('import-export'));
+    assert.equal(await page.locator('#account-login button').isDisabled(),true);
     assert.equal(await page.locator('#sync-label').textContent(),'Guardado local');
     await page.evaluate(()=>{window.delay=600;signIn('a');});
     await page.waitForFunction(()=>document.getElementById('account-panel').getAttribute('aria-busy')==='true');

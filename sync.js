@@ -28,6 +28,26 @@ const VaultSync = (() => {
     }
   };
   const baseKey = id => `hanzivault_sync_base:${id}`;
+  const emailCooldownKey='hanzivault_email_retry_at';
+  let emailSending=false;
+  function updateEmailButton() {
+    const button=document.querySelector('#account-login button');
+    if(!button)return;
+    const seconds=Math.max(0,Math.ceil((Number(localStorage.getItem(emailCooldownKey)||0)-Date.now())/1000));
+    button.disabled=emailSending||seconds>0;
+    button.textContent=emailSending?'Enviando…':seconds?`Volver a solicitar en ${seconds} s`:'Recibir enlace de acceso';
+  }
+  function emailError(error) {
+    if(error.code==='over_email_send_rate_limit'||/email rate limit exceeded/i.test(error.message||'')){
+      localStorage.setItem(emailCooldownKey,String(Date.now()+60000));
+      return 'Se ha alcanzado el límite de correos de Supabase. El servicio integrado permite 2 envíos por hora entre todos los dispositivos. Revisa el último enlace recibido: si sigue vigente y no lo has usado, puedes abrirlo. Si necesitas otro, espera a que se libere el cupo; puede tardar hasta una hora. Recargar no restablece el límite. No se ha iniciado sesión y tus palabras siguen guardadas localmente.';
+    }
+    if(error.status===429||error.code==='over_request_rate_limit'){
+      localStorage.setItem(emailCooldownKey,String(Date.now()+60000));
+      return 'Demasiadas solicitudes de acceso. Espera antes de volver a intentarlo; recargar no elimina el límite. Tus palabras siguen guardadas en este dispositivo.';
+    }
+    return 'No se pudo enviar el enlace: '+error.message;
+  }
   let conflicts = 0;
 
   function mergeFields(base, local, remote) {
@@ -171,14 +191,17 @@ const VaultSync = (() => {
   }
   async function login(event) {
     event.preventDefault();
+    if(emailSending||Number(localStorage.getItem(emailCooldownKey)||0)>Date.now()){updateEmailButton();return;}
     const email=document.getElementById('account-email').value.trim();
-    const button=event.target.querySelector('button');button.disabled=true;
+    emailSending=true;updateEmailButton();
     message('Enviando el enlace de acceso…');
     try{
       const {error}=await deadline(client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}}));
-      message(error ? error.message : 'Revisa tu correo y abre el enlace de acceso en este dispositivo. Si no llega, comprueba spam; el correo del proyecto debe estar autorizado por Supabase.');
-    }catch(error){message('No se pudo enviar el enlace: '+error.message);}
-    finally{button.disabled=false;}
+      if(error)throw error;
+      localStorage.setItem(emailCooldownKey,String(Date.now()+60000));
+      message('Enlace enviado. Revisa tu correo y spam y ábrelo en este dispositivo para iniciar sesión. Evita pedir otro mientras llega: cada solicitud consume el cupo de correo del proyecto.');
+    }catch(error){message(emailError(error));}
+    finally{emailSending=false;updateEmailButton();}
   }
   async function logout() {
     if (busy) {message('Espera a que termine la sincronización antes de cerrar sesión.');return;}
@@ -214,6 +237,8 @@ const VaultSync = (() => {
       }));
       client=window.supabase.createClient(config.url,config.publishableKey);
       document.getElementById('account-login').onsubmit=login;
+      updateEmailButton();
+      setInterval(updateEmailButton,1000);
       document.getElementById('account-combine').onclick=connect;
       document.getElementById('account-sync').onclick=sync;
       document.getElementById('account-logout').onclick=logout;

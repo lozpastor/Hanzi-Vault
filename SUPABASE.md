@@ -17,6 +17,12 @@ El correo predeterminado de Supabase puede limitar los destinatarios a los miemb
 
 ## Reproducir la configuración
 
+### Error «email rate limit exceeded»
+
+El proyecto usa el servicio de correo integrado: 2 envíos por hora para todo el proyecto y al menos 60 segundos entre solicitudes. Recargar o cambiar de dispositivo no restablece la cuota. La web explica el error y limita el reenvío durante 60 segundos, también tras recargar; esa espera local no garantiza que el cupo horario ya esté disponible. Revisa el último correo y utiliza el enlace solo si sigue vigente y no se ha utilizado. Si necesitas uno nuevo, espera a que se libere el cupo.
+
+La solución de producción es conectar un proveedor SMTP propio en Supabase. No se ha configurado ni contratado ninguno. No desactives la confirmación de correo para intentar solucionar este límite. Referencias: https://supabase.com/docs/guides/auth/rate-limits y https://supabase.com/docs/guides/auth/auth-smtp.
+
 1. Crea un proyecto en https://supabase.com/dashboard.
 2. Ejecuta `supabase-schema.sql` en el editor SQL del proyecto. Activa RLS y restringe el acceso a la biblioteca del usuario autenticado.
 3. En Authentication / URL Configuration, configura Site URL y Redirect URLs con `https://lozpastor.github.io/Hanzi-Vault/`. Si utilizas un dominio diferente, añade su dirección exacta.
