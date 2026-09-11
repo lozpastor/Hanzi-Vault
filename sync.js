@@ -1,5 +1,15 @@
 const VaultSync = (() => {
-  let client, user, baseline, busy = false, timer, paused = false;
+  let client, user, baseline, busy = false, timer, paused = false, sessionInitialized = false;
+  const deadline = async promise => {
+    let timeout;
+    try { return await Promise.race([promise,new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('La conexión ha tardado demasiado. Tus cambios siguen guardados aquí; volveremos a intentarlo.')),20000);})]); }
+    finally {clearTimeout(timeout);}
+  };
+  function working(value) {
+    document.getElementById('account-panel').setAttribute('aria-busy',String(value));
+    for(const id of ['account-sync','account-combine','account-logout']) document.getElementById(id).disabled=value;
+    document.getElementById('account-sync').textContent=value?'Sincronizando…':'Comprobar sincronización';
+  }
   const clone = value => JSON.parse(JSON.stringify(value));
   const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
   const config = window.HANZI_SUPABASE || {};
@@ -12,8 +22,8 @@ const VaultSync = (() => {
     if(notice){
       const failed=document.getElementById('sync-label')?.textContent==='Sin conexión';
       notice.hidden=Boolean(user&&baseline&&!failed);
-      notice.querySelector('strong').textContent=failed?'Hay cambios pendientes de sincronizar':user?'Combina las palabras de este dispositivo':'Conecta tu biblioteca entre dispositivos';
-      notice.querySelector('span').textContent=failed?value:user?'Has iniciado sesión. Combina esta biblioteca con tu cuenta una vez para compartir sus palabras.':configured?'Inicia sesión con el mismo correo en tus dispositivos y combina sus bibliotecas.':'Tus cambios se guardan solo en este navegador. La conexión compartida aún no está configurada.';
+      notice.querySelector('strong').textContent=failed?'Hay cambios pendientes de sincronizar':user?'Tu biblioteca se sincroniza automáticamente':'Conecta tu biblioteca entre dispositivos';
+      notice.querySelector('span').textContent=user?value:configured?'Abre el enlace de acceso de tu correo en cada dispositivo. La sesión del panel de Supabase es independiente de esta web.':'Tus cambios se guardan solo en este navegador. La conexión compartida aún no está configurada.';
       notice.querySelector('button').textContent=user?'Ver sincronización':'Conectar mi cuenta';
     }
   };
@@ -77,10 +87,12 @@ const VaultSync = (() => {
   async function sync() {
     if (!user || !baseline || busy || paused) return;
     busy = true;
+    working(true);setSyncStatus('saving');
+    message(`Sincronizando la biblioteca de ${user.email}…`);
     const owner = user.id;
     try {
       for (let attempt=0;attempt<4;attempt++) {
-        const {data:row,error} = await client.from('hanzi_vaults').select('revision,document').eq('user_id',owner).maybeSingle();
+        const {data:row,error} = await deadline(client.from('hanzi_vaults').select('revision,document').eq('user_id',owner).maybeSingle());
         if (error) throw error;
         if (user?.id !== owner || paused) return;
         const snapshot = clone(DB);
@@ -89,7 +101,7 @@ const VaultSync = (() => {
         const merged = merge(baseline.document,snapshot,remote);
         if (conflicts) localStorage.setItem('hanzivault_conflict_backup',JSON.stringify(snapshot));
         if (!equal(merged,remote)) {
-          const {data,error:writeError} = await client.rpc('save_hanzi_vault',{expected_revision:row?.revision || 0,payload:merged});
+          const {data,error:writeError} = await deadline(client.rpc('save_hanzi_vault',{expected_revision:row?.revision || 0,payload:merged}));
           if (writeError) throw writeError;
           if (data.conflict) continue;
         }
@@ -101,7 +113,7 @@ const VaultSync = (() => {
         localStorage.setItem(baseKey(owner),JSON.stringify(baseline));
         localStorage.setItem('hanzivault_db',JSON.stringify(DB));
         setSyncStatus(pending ? 'saving' : 'online');
-        message(conflicts ? 'Se combinaron los cambios. En campos modificados en ambos dispositivos se mantuvo la nube; puedes descargar la copia local anterior.' : `Sincronizado con ${user.email}.`);
+        message(conflicts ? 'Se combinaron los cambios. En campos modificados en ambos dispositivos se mantuvo la nube; puedes descargar la copia local anterior.' : `Sincronizado con ${user.email}: ${DB.words.length} palabras y ${DB.grammar.length} frases. Última comprobación: ${new Date().toLocaleTimeString('es')}. Los próximos cambios se guardan automáticamente.`);
         refreshUI();
         if (pending) schedule();
         return;
@@ -110,7 +122,7 @@ const VaultSync = (() => {
     } catch (error) {
       setSyncStatus('error');
       message('Guardado en este dispositivo; sincronización pendiente. ' + error.message);
-    } finally {busy=false;}
+    } finally {busy=false;working(false);}
   }
   function schedule() {
     if (!user || !baseline) {setSyncStatus('local');return;}
@@ -127,31 +139,43 @@ const VaultSync = (() => {
   }
   function onSession(session) {
     const next = session?.user;
-    if (next?.id === user?.id) return;
+    if (sessionInitialized && next?.id === user?.id) return;
+    if (busy) {setTimeout(()=>onSession(session),100);return;}
+    sessionInitialized=true;
     user=next;baseline=null;
     document.getElementById('account-login').hidden=Boolean(user);
     document.getElementById('account-logout').hidden=!user;
     document.getElementById('account-sync').hidden=!user;
     document.getElementById('account-combine').hidden=true;
-    if (!user) {message('Inicia sesión con el mismo correo en todos tus dispositivos.');setSyncStatus('local');return;}
+    if (!user) {setSyncStatus('local');message('No hay una sesión activa en esta web. Recibe un enlace por correo y ábrelo en este dispositivo para conectar tu biblioteca.');return;}
     const owner=localStorage.getItem('hanzivault_owner');
     // Never silently upload a previous account's data into a different account.
-    if (owner === user.id) {
+    let restored=false;
+    if(owner && owner!==user.id){
+      localStorage.setItem(`hanzivault_account_library:${owner}`,JSON.stringify(DB));
+      const saved=localStorage.getItem(`hanzivault_account_library:${user.id}`);
+      let library;try{library=JSON.parse(saved);}catch{}
+      restored=Boolean(library);
+      DB=library||{version:2,words:[],grammar:[],categories:[],relations:[],learningEvents:[],workbookVersion:WORKBOOK_SEED.version,seedVersion:4,contentMigrationVersion:2};
+      localStorage.setItem('hanzivault_db',JSON.stringify(DB));
+      refreshUI();
+    }
+    if (owner === user.id || restored) {
       try {baseline=JSON.parse(localStorage.getItem(baseKey(user.id)));} catch {}
     }
     localStorage.setItem('hanzivault_owner',user.id);
     if (baseline) {message('Recuperando tu biblioteca compartida…');sync();}
     else {
-      document.getElementById('account-combine').hidden=false;
-      message('Sesión iniciada. Combina esta biblioteca con tu cuenta para activar la sincronización. Si una ficha ya existe en la nube, se conserva su estado. Se guardará una copia local previa.');
+      connect().catch(error=>{setSyncStatus('error');message('No se pudo activar la sincronización: '+error.message);document.getElementById('account-combine').hidden=false;});
     }
   }
   async function login(event) {
     event.preventDefault();
     const email=document.getElementById('account-email').value.trim();
     const button=event.target.querySelector('button');button.disabled=true;
+    message('Enviando el enlace de acceso…');
     try{
-      const {error}=await client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+      const {error}=await deadline(client.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}}));
       message(error ? error.message : 'Revisa tu correo y abre el enlace de acceso en este dispositivo. Si no llega, comprueba spam; el correo del proyecto debe estar autorizado por Supabase.');
     }catch(error){message('No se pudo enviar el enlace: '+error.message);}
     finally{button.disabled=false;}
@@ -159,11 +183,15 @@ const VaultSync = (() => {
   async function logout() {
     if (busy) {message('Espera a que termine la sincronización antes de cerrar sesión.');return;}
     paused=true;
-    const {error}=await client.auth.signOut({scope:'local'});
-    paused=false;
-    if(error) message(error.message);
+    try{
+      const {error}=await deadline(client.auth.signOut({scope:'local'}));
+      if(error) throw error;
+      onSession(null);
+    }catch(error){message('No se pudo cerrar la sesión: '+error.message);}
+    finally{paused=false;}
   }
   async function init() {
+    const callbackError=new URLSearchParams(location.hash.slice(1)).get('error_description');
     const notice=document.createElement('div');notice.id='device-sync-notice';notice.className='sync-notice';
     notice.innerHTML='<div><strong>Conecta tu biblioteca entre dispositivos</strong><span></span></div><button class="btn btn-secondary" type="button">Conectar mi cuenta</button>';
     notice.querySelector('button').onclick=()=>{showPage('import-export');document.getElementById('account-panel').scrollIntoView({block:'start',behavior:'smooth'});};
@@ -178,24 +206,22 @@ const VaultSync = (() => {
     if (!configured) {message('Tus cambios se guardan en este navegador. La sincronización entre dispositivos está pendiente de activar.');return;}
     cloudEnabled=false;clearTimeout(saveTimer);
     try {
-      if (!window.supabase) await new Promise((resolve,reject)=>{
+      if (!window.supabase) await deadline(new Promise((resolve,reject)=>{
         const script=document.createElement('script');
         script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js';
         script.onload=resolve;script.onerror=()=>reject(new Error('No se pudo cargar la conexión. Recarga para reintentar.'));
         document.head.appendChild(script);
-      });
+      }));
       client=window.supabase.createClient(config.url,config.publishableKey);
       document.getElementById('account-login').onsubmit=login;
       document.getElementById('account-combine').onclick=connect;
       document.getElementById('account-sync').onclick=sync;
       document.getElementById('account-logout').onclick=logout;
       client.auth.onAuthStateChange((_event,session)=>setTimeout(()=>onSession(session),0));
-      const {data,error}=await client.auth.getSession();
+      const {data,error}=await deadline(client.auth.getSession());
       if(error) throw error;
-      // Render the login form even when there is no prior session.
-      document.getElementById('account-login').hidden=false;
-      message('Inicia sesión con el mismo correo en todos tus dispositivos.');
       onSession(data.session);
+      if(callbackError&&!data.session) message('El enlace de acceso no es válido o ha caducado. Solicita uno nuevo desde este formulario.');
       setInterval(()=>{if(!document.hidden) sync();},15000);
       window.addEventListener('online',sync);
       document.addEventListener('visibilitychange',()=>{if(!document.hidden) sync();});

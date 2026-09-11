@@ -7,8 +7,8 @@ El proyecto Hanzi Vault ya está creado y configurado en Supabase, con plan grat
 1. Abre https://lozpastor.github.io/Hanzi-Vault/ en el dispositivo cuyo progreso quieras usar como referencia.
 2. Pulsa Conectar mi cuenta, o entra en Cuenta / Importar y Exportar.
 3. Introduce tu correo y abre el enlace recibido en ese mismo dispositivo.
-4. Pulsa Combinar y activar sincronización. Se guarda una copia previa local.
-5. Repite con el mismo correo en el otro dispositivo y combina también su biblioteca. Se incorporan sus fichas adicionales; para IDs repetidos se mantiene inicialmente el estado de la nube.
+4. La biblioteca se combina automáticamente al abrir el enlace. Se guarda una copia previa local.
+5. Repite con el mismo correo en el otro dispositivo Su biblioteca también se combina automáticamente. Se incorporan sus fichas adicionales; para IDs repetidos se mantiene inicialmente el estado de la nube.
 6. Espera a ver Sincronizado. Las siguientes altas, cambios y borrados se comparten automáticamente.
 
 Recargar sin iniciar sesión no combina bibliotecas. No borres los datos del navegador antes de completar estos pasos: allí están las palabras que todavía no se han subido.
@@ -22,12 +22,14 @@ El correo predeterminado de Supabase puede limitar los destinatarios a los miemb
 3. En Authentication / URL Configuration, configura Site URL y Redirect URLs con `https://lozpastor.github.io/Hanzi-Vault/`. Si utilizas un dominio diferente, añade su dirección exacta.
 4. En `supabase-config.js`, introduce Project URL en `url` y la clave **publishable** (o la clave antigua **anon**) en `publishableKey`. Son configuración pública. Nunca publiques una clave secret, service_role ni la contraseña de la base de datos.
 5. Sube esa configuración a main. En Importar / Exportar, introduce tu correo y abre el enlace de acceso en ese dispositivo. Repite con el mismo correo en el móvil.
-6. En cada dispositivo, pulsa Combinar y activar sincronización. Se guarda una copia previa en ese navegador y se incorporan las entradas que aún no estén en la cuenta. Para fichas con el mismo identificador prevalece inicialmente la nube. Empieza por el dispositivo cuyo progreso quieras conservar como referencia.
+6. La primera sesión activa la sincronización sin pulsar ningún botón. Se guarda una copia previa en ese navegador y se incorporan las entradas que aún no estén en la cuenta. Para fichas con el mismo identificador prevalece inicialmente la nube. Empieza por el dispositivo cuyo progreso quieras conservar como referencia.
 
-Después, los cambios se suben automáticamente y se consultan cada 15 segundos, al volver a la pestaña o al recuperar conexión. Los cambios sin conexión permanecen guardados localmente hasta poder sincronizar. También puedes pulsar Sincronizar ahora.
+Después, los cambios se suben automáticamente y se consultan cada 15 segundos, al volver a la pestaña o al recuperar conexión. Los cambios sin conexión permanecen guardados localmente hasta poder sincronizar. El botón Comprobar sincronización es opcional. Muestra el progreso, los recuentos y el último resultado; los errores mantienen una advertencia y se reintentan al recuperar conexión.
 
 Las versiones y el bloqueo en la base evitan sobrescribir una biblioteca con una copia antigua. Se combinan los cambios independientes y las eliminaciones. Si dos dispositivos editan el mismo campo, se conserva la versión de la nube y se guarda una copia local descargable para recuperar el otro valor. Un borrado remoto prevalece ante una edición local antigua. Las entradas se identifican por ID; altas independientes del mismo término pueden aparecer como dos fichas.
 
 Se ha comprobado el servicio real: lectura y escritura autenticadas, bloqueo anónimo, separación entre dos usuarios, conflictos de versión y dos navegadores con la misma cuenta. La prueba combinó sus bibliotecas, igualó los recuentos y propagó una nueva palabra. Las cuentas temporales se eliminaron después. El envío del enlace a tu buzón requiere que inicies sesión con tu correo.
 
 Referencias: https://supabase.com/docs/guides/auth y https://supabase.com/docs/guides/database/postgres/row-level-security.
+
+La sesión del panel de administración de Supabase no inicia sesión en Hanzi Vault. Introducir el correo solo envía el enlace: debes abrirlo en el mismo navegador donde usas la web. Al cambiar de cuenta se conserva una copia local separada, sin subir la biblioteca de la cuenta anterior a la nueva. Al volver a la cuenta anterior se recupera su copia y su historial de sincronización.

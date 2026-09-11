@@ -29,10 +29,10 @@ const server=http.createServer((req,res)=>{
         })};
       });
       await page.goto(`http://127.0.0.1:${server.address().port}/`);
-      await page.waitForFunction(()=>document.getElementById('account-combine')?.hidden===false);
+      await page.waitForFunction(()=>document.getElementById('sync-label')?.textContent==='Sincronizado');
       await page.evaluate(()=>{showPage('import-export');});
       if(i===1) await page.evaluate(()=>{DB.words.push({id:'mobile-only',zh:'移动',pinyin:'yidong',translation:'móvil',status:'learning'});saveDB();});
-      await page.locator('#account-combine').click();
+      if(i===1) await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
       await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
       pages.push(page);
     }

@@ -54,16 +54,14 @@ async function request(path,key,method='GET',body,access=key){
           localStorage.setItem('hanzivault_db',JSON.stringify({version:2,seedVersion:4,contentMigrationVersion:2,workbookVersion:'2026-09-09',words:[{id:'browser-'+i,zh:'学习',pinyin:'xuexi',translation:'study',status:'learning'}],grammar:[],categories:[],relations:[]}));
         },{session:authSessions[0],ref,i});
         await page.goto(`http://127.0.0.1:${server.address().port}/`);
-        await page.waitForFunction(()=>document.getElementById('account-combine')?.hidden===false,null,{timeout:60000});
-        await page.evaluate(()=>showPage('import-export'));await page.locator('#account-combine').click();
+        await page.waitForFunction(()=>document.getElementById('sync-label')?.textContent==='Sincronizado',null,{timeout:60000});
+        await page.evaluate(()=>showPage('import-export'));
         await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado',null,{timeout:60000});pages.push(page);
       }
-      await pages[0].locator('#account-sync').click();
       await pages[0].waitForFunction(()=>DB.words.some(w=>w.id==='browser-1'));
       const counts=await Promise.all(pages.map(p=>p.evaluate(()=>DB.words.length)));assert.equal(counts[0],counts[1]);
       await pages[0].evaluate(()=>{DB.words.push({id:'live-new-word',zh:'足球',pinyin:'zuqiu',translation:'football',status:'learning'});saveDB();});
       await pages[0].waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
-      await pages[1].locator('#account-sync').click();
       await pages[1].waitForFunction(()=>DB.words.some(w=>w.id==='live-new-word'));
       console.log('PASS real browsers: same authenticated account merges both libraries, equal counts, new word appears on second device.');
     }finally{await browser.close();server.close();}

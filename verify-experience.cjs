@@ -25,7 +25,7 @@ const server=http.createServer((req,res)=>{
     assert(await page.evaluate(zh=>DB.grammar.some(i=>i.pattern===zh&&i.status==='planned'),hanzi));
     await page.locator('.practice-reveal').click();await page.waitForSelector('.practice-meaning');
     await page.locator('.practice-ratings button').last().click();
-    assert(await page.evaluate(zh=>DB.grammar.some(i=>i.pattern===zh&&i.lastReviewedAt),hanzi));
+    assert(await page.evaluate(zh=>DB.grammar.some(i=>i.pattern===zh&&i.lastReviewedAt&&i.status==='learned'&&i.mastery==='ready'),hanzi));
     await page.evaluate(()=>openAddWord());
     await page.locator('#quick-pinyin').fill('football');
     await page.waitForFunction(()=>window.quickAddMatches?.some(i=>i.zh==='足球'),null,{timeout:60000});

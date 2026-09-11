@@ -363,7 +363,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 </style>
 </head>
 <body>
-<link rel="stylesheet" href="progress.css">
+<link rel="stylesheet" href="progress.css?v=20260911">
 <link rel="stylesheet" href="studio.css">
 
 <div class="app">
@@ -427,7 +427,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
     <div class="level-progress">
       <div class="level-progress-top"><span id="level-label">HSK 1</span><span><span class="level-score" id="level-score">1</span> / 160</span></div>
       <div class="level-track"><div class="level-fill" id="level-fill"></div></div>
-      <div class="level-scale"><span>HSK 1</span><span>HSK 2</span><span>HSK 3</span><span>HSK 4</span><span>HSK 5</span><span>HSK 6</span></div>
+      <div class="level-scale"><span>HSK 1</span><span>HSK 2</span><span>HSK 3</span><span>HSK 4</span></div>
     </div>
     <div class="topbar-right">
       <div class="topbar-search">
@@ -435,7 +435,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
         <input type="text" placeholder="Buscar palabras, pinyin, traducción..." id="global-search" oninput="handleGlobalSearch(this.value)">
       </div>
       <div class="topbar-actions">
-        <div class="sync-status" id="sync-status"><span class="sync-dot"></span><span id="sync-label">Guardado local</span></div>
+        <button type="button" class="sync-status" id="sync-status" onclick="showPage('import-export')" title="Ver cuenta y sincronización" aria-live="polite"><span class="sync-dot"></span><span id="sync-label">Guardado local</span></button>
         <button class="btn btn-secondary" onclick="showPage('review')">↻ Repasar</button>
         <button class="btn btn-primary" onclick="openAddWord()">+ Añadir</button>
       </div>
@@ -852,10 +852,11 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 
 <script src="seed-data.js"></script>
 <script src="workbook-seed.js"></script>
-<script src="progress.js"></script>
+<script src="hsk-reference.js?v=20260911"></script>
+<script src="progress.js?v=20260911"></script>
 <script src="supabase-config.js?v=20260909"></script>
-<script src="sync.js?v=20260909"></script>
-<script src="review.js"></script>
+<script src="sync.js?v=20260911"></script>
+<script src="review.js?v=20260911"></script>
 <script src="knowledge-sphere.js"></script>
 <script src="lexical-search.js"></script>
 <script>
@@ -875,6 +876,7 @@ let cloudEnabled = !VaultSync.configured && (location.protocol === 'http:' || lo
 let CEDICT_INDEX = null;  // Índice de diccionario cargado localmente
 
 function saveDB() {
+  assignHskLevels();
   [...DB.words, ...DB.grammar].forEach(item => {
     if (item.mastery && MASTERY[item.mastery]?.status !== item.status) {
       item.mastery = ({planned:'planned',learning:'recognize',learned:'ready'})[item.status] || 'planned';
@@ -1284,7 +1286,7 @@ function renderDashboard() {
           <div style="font-size:13px;font-style:italic;color:var(--accent)">${w.pinyin}</div>
           <div style="font-size:12.5px;color:var(--text2)">${w.translation}</div>
         </div>
-        ${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK${w.hsk}</span>` : ''}
+        ${hskBadge(w)}
       </div>
     `).join('');
   }
@@ -1413,7 +1415,7 @@ function wordCardHTML(w) {
       ${w.exampleZh ? `<div class="word-example"><div class="word-example-zh">${w.exampleZh}</div><div style="font-size:12px;color:var(--text2)">${w.exampleEs||''}</div></div>` : ''}
       <div class="word-footer">
         ${statusPickerHTML('word', w.id, w.status)}
-        ${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK ${w.hsk}</span>` : ''}
+        ${hskBadge(w)}
         ${cat ? `<span class="tag">${cat.emoji||''} ${cat.name}</span>` : ''}
         ${(w.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
         ${w.starred ? `<span style="color:#f59e0b;font-size:12px;margin-left:auto">★ Favorito</span>` : ''}
@@ -1429,7 +1431,7 @@ function wordRowHTML(w) {
       <td class="pinyin-cell">${w.pinyin}</td>
       <td>${w.translation}</td>
       <td onclick="event.stopPropagation()">${statusPickerHTML('word', w.id, w.status)} ${cat ? `<span class="tag">${cat.emoji||''} ${cat.name}</span>` : ''}</td>
-      <td>${w.hsk ? `<span class="hsk hsk-${w.hsk}">HSK ${w.hsk}</span>` : '—'}</td>
+      <td>${hskBadge(w)}</td>
       <td style="color:var(--text2);font-size:12px">${new Date(w.date).toLocaleDateString('es')}</td>
       <td onclick="event.stopPropagation()">
         <div style="display:flex;gap:4px">
@@ -1655,14 +1657,18 @@ function download(data, filename, type) {
 // UTILS
 // ============================================================
 function updateNavBadges() {
+  if(assignHskLevels()) saveDB();
   document.getElementById('nav-word-count').textContent = DB.words.length;
   document.getElementById('nav-grammar-count').textContent = DB.grammar.length;
-  const all = [...DB.words, ...DB.grammar];
-  const learned = all.filter(item => item.status === 'learned').length;
-  const learning = all.filter(item => item.status === 'learning').length;
-  const percent = all.length ? Math.round((learned + learning * 0.35) / all.length * 100) : 0;
-  const score = Math.max(1, Math.round(percent * 1.6));
-  const levels = score < 27 ? 'HSK 1' : score < 54 ? 'HSK 2' : score < 81 ? 'HSK 3' : score < 108 ? 'HSK 4' : score < 135 ? 'HSK 5' : 'HSK 6';
+  const words=DB.words.filter(i=>i.status==='learned').length;
+  const phrases=DB.grammar.filter(i=>i.status==='learned').length;
+  const reached=EXCEL_HSK_TARGETS.words.filter((target,i)=>words>=target&&phrases>=EXCEL_HSK_TARGETS.grammar[i]).length;
+  const next=Math.min(reached,3),previousWords=next?EXCEL_HSK_TARGETS.words[next-1]:0,previousPhrases=next?EXCEL_HSK_TARGETS.grammar[next-1]:0;
+  const stage=Math.min(1,Math.max(0,Math.min((words-previousWords)/(EXCEL_HSK_TARGETS.words[next]-previousWords),(phrases-previousPhrases)/(EXCEL_HSK_TARGETS.grammar[next]-previousPhrases))));
+  const percent=(next+stage)/4*100;
+  const score=Math.round(percent*1.6);
+  const levels=reached===4?'Meta HSK 4 alcanzada':`Hacia HSK ${reached+1}`;
+  document.getElementById('level-label').parentElement.parentElement.title='Itinerario personal del Excel · Biblioteca completa · Índice interno 0–160, no puntuación oficial HSK ni Duolingo';
   document.getElementById('level-fill').style.width = `${percent}%`;
   document.getElementById('level-score').textContent = score;
   document.getElementById('level-label').textContent = levels;
@@ -1865,7 +1871,7 @@ function toggleTheme() {
 // SEED DATA (demo)
 // ============================================================
 function seedDemoData() {
-  if (DB.words.length > 0) return;
+  if (DB.words.length > 0 || DB.workbookVersion || localStorage.getItem('hanzivault_db')) return;
   const demos = [
     {zh:'中国',pinyin:'Zhōngguó',translation:'China',category:'cat5',hsk:'1',exampleZh:'我来自中国。',exampleEs:'Vengo de China.',tags:['geografía']},
     {zh:'北京',pinyin:'Běijīng',translation:'Pekín (capital de China)',category:'cat5',hsk:'1',exampleZh:'北京是中国的首都。',exampleEs:'Pekín es la capital de China.',tags:['geografía','ciudad']},
