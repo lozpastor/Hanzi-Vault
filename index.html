@@ -372,8 +372,10 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
   .form-group{grid-column:1/-1}
 }
 </style>
+<link rel="stylesheet" href="auth.css?v=20260912">
 </head>
-<body>
+<body class="auth-locked">
+<main id="auth-gate" aria-label="Acceso a Hanzi Vault"><p>Conectando con tu biblioteca…</p></main>
 <link rel="stylesheet" href="progress.css?v=20260911">
 <link rel="stylesheet" href="studio.css">
 
@@ -446,7 +448,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
         <input type="text" placeholder="Buscar palabras, pinyin, traducción..." id="global-search" oninput="handleGlobalSearch(this.value)">
       </div>
       <div class="topbar-actions">
-        <button type="button" class="sync-status" id="sync-status" onclick="showPage('import-export')" title="Ver cuenta y sincronización" aria-live="polite"><span class="sync-dot"></span><span id="sync-label">Guardado local</span></button>
+        <button type="button" class="sync-status" id="sync-status" onclick="showPage('import-export')" title="Ver cuenta y sincronización"><span class="sync-dot"></span><span class="profile-text"><span id="profile-name"></span><span id="sync-label" aria-live="polite">Inicia sesión</span></span></button>
         <button class="btn btn-secondary" onclick="showPage('review')">↻ Repasar</button>
         <button class="btn btn-primary" onclick="openAddWord()">+ Añadir</button>
       </div>
@@ -885,8 +887,9 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="hsk-reference.js?v=20260911"></script>
 <script src="progress.js?v=20260911"></script>
 <script src="supabase-config.js?v=20260909"></script>
-<script src="sync.js?v=20260911-email"></script>
-<script src="review.js?v=20260911"></script>
+<script src="auth.js?v=20260912"></script>
+<script src="sync.js?v=20260912"></script>
+<script src="review.js?v=20260912"></script>
 <script src="knowledge-sphere.js"></script>
 <script src="lexical-search.js"></script>
 <script>
@@ -906,6 +909,7 @@ let cloudEnabled = !VaultSync.configured && (location.protocol === 'http:' || lo
 let CEDICT_INDEX = null;  // Índice de diccionario cargado localmente
 
 function saveDB() {
+  if(!VaultSync.canEdit)return;
   assignHskLevels();
   [...DB.words, ...DB.grammar].forEach(item => {
     if (item.mastery && MASTERY[item.mastery]?.status !== item.status) {
@@ -913,8 +917,8 @@ function saveDB() {
     }
   });
   DB.version = 2;
+  if (VaultSync.configured) {VaultSync.persist();VaultSync.schedule();return;}
   localStorage.setItem('hanzivault_db', JSON.stringify(DB));
-  if (VaultSync.configured) {VaultSync.schedule();return;}
   setSyncStatus(cloudEnabled ? 'saving' : 'local');
   if (!cloudEnabled) return;
   clearTimeout(saveTimer);
@@ -1021,6 +1025,7 @@ function setSyncStatus(state) {
   if (!status || !label) return;
   status.className = `sync-status ${state === 'online' ? 'online' : state === 'error' ? 'error' : ''}`;
   label.textContent = state === 'online' ? 'Sincronizado' : state === 'saving' ? 'Guardando…' : state === 'error' ? 'Sin conexión' : 'Guardado local';
+  if(VaultSync.configured)VaultAuth.profile();
 }
 
 function genId() {
@@ -1037,6 +1042,7 @@ const pageTitles = {
 };
 
 function showPage(id) {
+  if(!VaultSync.canEdit)return;
   document.querySelectorAll('.mobile-dock button').forEach(button=>button.setAttribute('aria-current',button.dataset.page===id?'page':'false'));
   if (id !== 'graph') KnowledgeSphere.stop();
   document.querySelector('.app').classList.toggle('graph-mode', id === 'graph');
@@ -1991,8 +1997,7 @@ async function loadCEDICTIndex() {
 }
 
 async function init() {
-  await loadDB();
-  seedDemoData();
+  if(VaultSync.canEdit){await loadDB();seedDemoData();}
   if (localStorage.getItem('hanzivault_sidebar') === 'collapsed') {
     document.querySelector('.app').classList.add('sidebar-collapsed');
     document.getElementById('collapse-icon').textContent = '»';
@@ -2007,6 +2012,7 @@ async function init() {
   VaultSync.init();
   if (requestedPage && document.getElementById(`page-${requestedPage}`)) showPage(requestedPage);
   document.addEventListener('keydown', event => {
+    if(!VaultSync.canEdit)return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       document.getElementById('global-search').focus();

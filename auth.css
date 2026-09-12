@@ -1,0 +1,23 @@
+.auth-locked .app,.auth-locked .mobile-dock,.auth-locked .modal-overlay,.auth-locked .fab{display:none!important}
+#auth-gate{min-height:100dvh;display:grid;place-items:center;padding:28px;background:var(--bg)}
+#auth-gate[hidden]{display:none}
+.auth-shell{width:100%;max-width:430px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px}
+.auth-brand{font-size:13px;letter-spacing:.1em;color:var(--accent);margin-bottom:28px;font-weight:600}
+.auth-shell h1{font-size:27px;letter-spacing:-.7px;margin:0 0 10px}
+.auth-shell p{font-size:14px;line-height:1.65;color:var(--text2)}
+.auth-form{display:grid;gap:12px;margin-top:20px}
+.auth-form label{font-size:13px;color:var(--text2)}
+.auth-form input{width:100%;min-height:44px}
+.auth-form button{min-height:44px}
+.auth-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.auth-links button{font-size:12px}
+#auth-message{min-height:24px;margin-top:18px;overflow-wrap:anywhere}
+.account-password-form{max-width:430px;margin:24px 0}
+.profile-button{display:flex!important;align-items:center;gap:8px;max-width:210px;min-width:0}
+.profile-button #profile-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:12px}
+.profile-button #sync-label{font-size:10px;display:block;text-align:left}
+.profile-text{min-width:0}
+.topbar .level-progress{min-width:0}
+@media(max-width:900px){.topbar .level-progress{margin-left:0}.topbar .topbar-actions>.btn{display:none}.topbar .topbar-right{flex:0 0 auto}.topbar .profile-button{max-width:150px}.topbar .profile-button #profile-name{max-width:115px}}
+@media(max-width:600px){#auth-gate{padding:16px}.auth-shell{padding:24px}.topbar-actions .profile-button{display:flex!important;max-width:150px}.profile-button #profile-name{max-width:115px}.account-password-form{max-width:100%}}
+[hidden]{display:none!important}

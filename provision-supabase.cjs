@@ -30,6 +30,11 @@ async function api(path,method='GET',body){
     const key=keys.find(k=>k.type==='publishable')||keys.find(k=>k.name==='anon');
     if(!key)throw new Error('No public key available');
     console.log(JSON.stringify({url:`https://${ref}.supabase.co`,publishableKey:key.api_key}));
+  }else if(action==='auth-audit'){
+    console.log(JSON.stringify(await api(`projects/${ref}/database/query`,'POST',{query:"select (select count(*) from auth.users) as accounts, (select count(*) from auth.users where length(encrypted_password)>0) as password_accounts, (select count(*) from public.hanzi_vaults) as libraries, exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and tablename='hanzi_vaults') as realtime_enabled;"})));
+  }else if(action==='realtime'){
+    await api(`projects/${ref}/database/query`,'POST',{query:fs.readFileSync('supabase-realtime.sql','utf8')});
+    console.log('Realtime enabled for private vault updates.');
   }else if(action==='audit'){
     const result=await api(`projects/${ref}/database/query`,'POST',{query:"select relrowsecurity from pg_class where oid='public.hanzi_vaults'::regclass;"});
     const auth=await api(`projects/${ref}/config/auth`);

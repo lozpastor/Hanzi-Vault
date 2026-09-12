@@ -50,6 +50,7 @@ const Review = (() => {
     results.push(rating);position++;revealed=false;render();answering=false;
   }
   document.addEventListener('keydown',e=>{
+    if(!VaultSync.canEdit)return;
     if(!document.getElementById('page-review')?.classList.contains('active')||document.querySelector('.modal-overlay.open')||/INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName))return;
     if(e.code==='Space'){e.preventDefault();reveal();}
     if(['1','2','3'].includes(e.key)&&revealed){e.preventDefault();answer({1:'hard',2:'medium',3:'easy'}[e.key]);}

@@ -5,7 +5,7 @@ El buscador completo por pinyin utiliza datos de
 [Creative Commons Attribution-ShareAlike 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 # Actualización de cuenta y progresión (septiembre 2026)
 
-El acceso por enlace de correo activa automáticamente la combinación y sincronización. La cuenta muestra operación en curso, resultado, recuentos y errores recuperables. La sesión de administración de Supabase es independiente del acceso a esta web. Consulta `SUPABASE.md`.
+El acceso exige correo y contraseña antes de mostrar la biblioteca. Cada cuenta carga sus propios datos y muestra el perfil activo arriba a la derecha. Realtime propaga altas, estados y borrados, con comprobación periódica de respaldo. La comparación ignora el orden de campos JSONB para evitar escrituras repetidas. Las copias locales antiguas se preservan; las que no tenían cuenta requieren confirmar su importación. La sesión y contraseña del panel de Supabase son independientes. Consulta `SUPABASE.md`.
 
 Repasar actualiza la ficha original: En proceso = Reconozco; Con ayuda = Recuerdo con ayuda; Aprendida = Puedo utilizarlo (conserva Lo utilizo si ya estaba en ese estado). Registra el cambio de dominio y programa el siguiente repaso a 1, 3 o 7 días.
 

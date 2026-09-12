@@ -1,6 +1,7 @@
 const {chromium} = require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 let remote=null, revision=0;
+const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 const server=http.createServer((req,res)=>{
   const file=path.join(process.cwd(),req.url==='/'?'index.html':req.url.split('?')[0]);
   if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}
@@ -19,11 +20,11 @@ const server=http.createServer((req,res)=>{
       await page.exposeFunction('mockRead',()=>({data:remote?{document:remote,revision}:null,error:null}));
       await page.exposeFunction('mockWrite',args=>{
         if(args.expected_revision!==revision)return {data:{conflict:true},error:null};
-        remote=args.payload;revision++;return {data:{revision},error:null};
+        remote=canonical(args.payload);revision++;return {data:{revision},error:null};
       });
       await page.addInitScript(()=>{
         window.supabase={createClient:()=>({
-          auth:{onAuthStateChange:()=>{},getSession:async()=>({data:{session:{user:{id:'test-user',email:'test@example.com'}}}})},
+          auth:{onAuthStateChange:()=>{},getUser:async()=>({data:{user:{id:'test-user',email:'test@example.com'}}}),getSession:async()=>({data:{session:{user:{id:'test-user',email:'test@example.com'}}}})},
           from:()=>({select:()=>({eq:()=>({maybeSingle:()=>window.mockRead()})})}),
           rpc:(_name,args)=>window.mockWrite(args)
         })};
@@ -37,6 +38,10 @@ const server=http.createServer((req,res)=>{
       pages.push(page);
     }
     assert(remote.words.some(i=>i.id==='mobile-only'));
+    const stableRevision=revision;
+    await pages[1].locator('#account-sync').click();
+    await pages[1].waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
+    assert.equal(revision,stableRevision,'Unchanged JSONB with reordered keys must not trigger a write');
     await pages[0].locator('#account-sync').click();
     await pages[0].waitForFunction(()=>DB.words.some(i=>i.id==='mobile-only'));
     // Concurrent additions from two devices must both survive revision retries.
