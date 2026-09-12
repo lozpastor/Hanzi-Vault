@@ -210,8 +210,9 @@ const VaultSync = (() => {
     host.innerHTML='<h3>Tu cuenta y tus dispositivos</h3><p id="account-message" role="status"></p><button id="account-sync" class="btn btn-secondary" hidden>Comprobar sincronización</button><button id="account-logout" class="btn btn-secondary" hidden>Cerrar sesión</button><button id="account-import-legacy" class="btn btn-secondary" hidden>Importar mi biblioteca anterior de este navegador</button><button id="account-backup" class="btn btn-secondary">Descargar copia anterior de esta cuenta</button>';
     if(!configured){
       if(authRequired){document.getElementById('auth-gate').textContent='No se pudo cargar la configuración de acceso. Recarga para reintentar. Tu biblioteca permanece bloqueada.';return;}
-      document.body.classList.remove('auth-locked');document.getElementById('auth-gate').hidden=true;return;
+      document.body.classList.remove('auth-locked');document.getElementById('auth-gate').hidden=true;window.HanziBoot?.done();return;
     }
+    try{
     migrateLocal();cloudEnabled=false;clearTimeout(saveTimer);
     const notice=document.createElement('div');notice.id='device-sync-notice';notice.className='sync-notice';notice.hidden=true;
     notice.innerHTML='<div><strong>Hay cambios pendientes de sincronizar</strong><span></span></div><button class="btn btn-secondary">Ver cuenta</button>';
@@ -224,13 +225,14 @@ const VaultSync = (() => {
       const data=localStorage.getItem(`hanzivault_conflict_backup:${user.id}`)||localStorage.getItem(`hanzivault_before_cloud:${user.id}`);
       if(data)download(data,'hanzi-copia-anterior.json','application/json');else message('No hay una copia anterior para esta cuenta. Puedes exportar su biblioteca actual.');
     };
-    try{
       if(!window.supabase)await deadline(new Promise((resolve,reject)=>{
         const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js';
         script.onload=resolve;script.onerror=()=>reject(new Error('No se pudo cargar el acceso. Comprueba tu conexión y recarga.'));document.head.appendChild(script);
       }));
       client=window.supabase.createClient(config.url,config.publishableKey);
+      if(window.HanziBoot?.failed)return;
       VaultAuth.bind(client);
+      window.HanziBoot?.done();
       let authEventSeen=false;
       client.auth.onAuthStateChange((event,session)=>{
         if(event==='INITIAL_SESSION')return;
@@ -248,7 +250,7 @@ const VaultSync = (() => {
       document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
       window.addEventListener('beforeunload',event=>{if(user&&ready&&!equal(DB,baseline?.document)){event.preventDefault();event.returnValue='';}});
     }catch(error){
-      if(!document.getElementById('auth-message'))document.getElementById('auth-gate').textContent='No se pudo cargar el acceso. Comprueba tu conexión y recarga.';
+      if(!document.getElementById('auth-message'))window.HanziBoot?.fail(error);
       else VaultAuth.failure(error.message);
       setSyncStatus('error');
     }

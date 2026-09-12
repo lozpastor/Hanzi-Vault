@@ -3,6 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// Runs before external scripts so startup failures cannot leave a silent gate.
+window.HanziBoot = (function () {
+  var finished = false, failed = false;
+  var timeout = setTimeout(function () { fail('TIMEOUT'); }, 25000);
+  function fail(reason) {
+    if (finished) return;
+    failed = true;
+    clearTimeout(timeout);
+    var code = typeof reason === 'string' ? reason : reason && reason.name || 'INIT';
+    var storage = code === 'SecurityError' || code === 'QuotaExceededError';
+    function display() {
+      var gate = document.getElementById('auth-gate');
+      if (!gate) return;
+      document.body.classList.add('auth-locked');
+      gate.hidden = false;
+      gate.innerHTML = '<section class="auth-shell"><div class="auth-brand">HANZI VAULT</div><h1>No se ha podido iniciar</h1><p id="boot-explanation"></p><p>No se han borrado tus datos. Puedes reintentar la carga sin cerrar tu cuenta ni eliminar la copia local.</p><button type="button" class="btn btn-primary" id="boot-retry">Reintentar carga</button><p id="boot-code" role="status"></p></section>';
+      document.getElementById('boot-explanation').textContent = storage ? 'El navegador no permite acceder al almacenamiento o no tiene espacio disponible. Prueba a abrir esta dirección directamente en Safari o Chrome, fuera del navegador de otra aplicación.' : 'La carga se ha interrumpido o un archivo no ha llegado correctamente. Comprueba la conexión y prueba a abrir la web directamente en Safari o Chrome.';
+      document.getElementById('boot-code').textContent = 'Diagnóstico: ' + code;
+      document.getElementById('boot-retry').onclick = function () { var url = new URL(location.href); url.searchParams.set('_reload', Date.now()); location.replace(url.href); };
+    }
+    if (document.getElementById('auth-gate')) display();
+    else document.addEventListener('DOMContentLoaded', display, {once:true});
+  }
+  window.addEventListener('error', function (event) { if (!finished && (event.error || event.target && event.target.tagName === 'SCRIPT')) fail(event.error || 'SCRIPT_LOAD'); }, true);
+  window.addEventListener('unhandledrejection', function (event) { if (!finished) fail(event.reason); });
+  return { fail:fail, done:function () { finished=true; clearTimeout(timeout); }, get failed() { return failed; } };
+})();
+</script>
 <title>漢字 Vault — Tu diccionario de chino</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -882,16 +911,16 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="seed-data.js"></script>
-<script src="workbook-seed.js"></script>
-<script src="hsk-reference.js?v=20260911"></script>
-<script src="progress.js?v=20260911"></script>
-<script src="supabase-config.js?v=20260909"></script>
-<script src="auth.js?v=20260912"></script>
-<script src="sync.js?v=20260912"></script>
-<script src="review.js?v=20260912"></script>
-<script src="knowledge-sphere.js"></script>
-<script src="lexical-search.js"></script>
+<script src="seed-data.js?v=20260912-boot"></script>
+<script src="workbook-seed.js?v=20260912-boot"></script>
+<script src="hsk-reference.js?v=20260912-boot"></script>
+<script src="progress.js?v=20260912-boot"></script>
+<script src="supabase-config.js?v=20260912-boot"></script>
+<script src="auth.js?v=20260912-boot"></script>
+<script src="sync.js?v=20260912-boot"></script>
+<script src="review.js?v=20260912-boot"></script>
+<script src="knowledge-sphere.js?v=20260912-boot"></script>
+<script src="lexical-search.js?v=20260912-boot"></script>
 <script>
 // ============================================================
 // STATE / DATABASE (shared API with local browser fallback)
@@ -1481,7 +1510,8 @@ function wordRowHTML(w) {
 // ============================================================
 // RENDER: GRAMMAR
 // ============================================================
-let phraseView=localStorage.getItem('hanzivault_phrase_view')==='table'?'table':'cards';
+let phraseView='cards';
+try{phraseView=localStorage.getItem('hanzivault_phrase_view')==='table'?'table':'cards';}catch{}
 function setPhraseView(view) {
   phraseView=view==='table'?'table':'cards';
   localStorage.setItem('hanzivault_phrase_view',phraseView);
@@ -1997,19 +2027,21 @@ async function loadCEDICTIndex() {
 }
 
 async function init() {
+  if(window.HanziBoot.failed)return;
   if(VaultSync.canEdit){await loadDB();seedDemoData();}
-  if (localStorage.getItem('hanzivault_sidebar') === 'collapsed') {
+  let collapsed=false;try{collapsed=localStorage.getItem('hanzivault_sidebar')==='collapsed';}catch{}
+  if (collapsed) {
     document.querySelector('.app').classList.add('sidebar-collapsed');
     document.getElementById('collapse-icon').textContent = '»';
   }
-  updateNavBadges();
+  if(!VaultSync.configured)updateNavBadges();
   const dock=document.createElement('nav');dock.className='mobile-dock';dock.setAttribute('aria-label','Navegación principal');
   [['dashboard','◈','Inicio'],['dictionary','字','Palabras'],['grammar','句','Frases'],['review','↻','Repasar'],['graph','◎','Mapa'],['import-export','⇅','Cuenta']].forEach(([id,icon,label])=>{
     const button=document.createElement('button');button.type='button';button.dataset.page=id;button.setAttribute('aria-current',id==='dashboard'?'page':'false');button.innerHTML=`<span>${icon}</span>${label}`;button.onclick=()=>showPage(id);dock.appendChild(button);
   });document.body.appendChild(dock);
-  renderDashboard();
+  if(!VaultSync.configured)renderDashboard();
   const requestedPage = new URLSearchParams(location.search).get('page');
-  VaultSync.init();
+  await VaultSync.init();
   if (requestedPage && document.getElementById(`page-${requestedPage}`)) showPage(requestedPage);
   document.addEventListener('keydown', event => {
     if(!VaultSync.canEdit)return;
@@ -2024,7 +2056,7 @@ async function init() {
     }
   });
 }
-init();
+init().catch(error=>window.HanziBoot.fail(error));
 </script>
 </body>
 </html>
