@@ -290,6 +290,16 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 .phrase-table th:nth-child(7){width:9%}
 .phrase-results{font-size:12px;color:var(--text2);margin:0 0 16px}
 #page-grammar .filters-bar>*{max-width:100%}
+#page-lessons{max-width:850px;padding-bottom:32px}
+#page-lessons h2,#page-lessons h3{margin:20px 0 8px}
+#page-lessons p{margin:8px 0 12px}
+.lesson-library{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr));gap:10px;margin-top:14px}
+.lesson-library .lesson-link{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;white-space:normal}
+.lesson-list{padding-inline-start:24px}
+.lesson-list li{padding:10px 0;border-bottom:1px solid var(--border2)}
+#page-lessons details{margin-top:5px}
+#page-lessons summary{cursor:pointer}
+.lesson-status:empty{display:none}
 
 /* RECOMMENDATIONS */
 .rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:flex-start;gap:14px;transition:all var(--transition)}
@@ -427,6 +437,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       <span class="nav-icon">字</span><span class="nav-label">Mi Diccionario</span>
       <span class="nav-badge" id="nav-word-count">0</span>
     </div>
+    <button type="button" class="nav-item" style="border:0;background-color:transparent;text-align:left" title="Lecciones" onclick="showPage('lessons')"><span class="nav-icon">◈</span><span class="nav-label">Lecciones</span></button>
     <div class="nav-item" onclick="showPage('grammar')">
       <span class="nav-icon">句</span><span class="nav-label">Frases</span>
       <span class="nav-badge" id="nav-grammar-count">0</span>
@@ -574,6 +585,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
     </div>
 
     <!-- GRAMMAR -->
+    <div class="page" id="page-lessons"></div>
     <div class="page" id="page-grammar">
       <div class="section-header">
         <div>
@@ -921,6 +933,8 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="review.js?v=20260912-boot"></script>
 <script src="knowledge-sphere.js?v=20260912-boot"></script>
 <script src="lexical-search.js?v=20260912-boot"></script>
+<script src="lessons-data.js"></script>
+<script src="lessons.js"></script>
 <script>
 // ============================================================
 // STATE / DATABASE (shared API with local browser fallback)
@@ -1065,6 +1079,7 @@ function genId() {
 // NAVIGATION
 // ============================================================
 const pageTitles = {
+  lessons: 'Lecciones',
   dashboard:'Dashboard',dictionary:'Mi Diccionario',grammar:'Frases y estructuras',
   graph:'Mapa de Conocimiento',recommendations:'Recomendaciones',review:'Sesión de Repaso',
   categories:'Categorías','import-export':'Importar / Exportar'
@@ -1086,6 +1101,7 @@ function showPage(id) {
   if (id === 'dashboard') renderDashboard();
   if (id === 'dictionary') renderDictionary();
   if (id === 'grammar') renderGrammar();
+  if (id === 'lessons') HanziLessons.render();
   if (id === 'graph') setTimeout(renderGraph, 100);
   if (id === 'recommendations') generateRecommendations();
   if (id === 'review') renderReview();
@@ -2036,7 +2052,7 @@ async function init() {
   }
   if(!VaultSync.configured)updateNavBadges();
   const dock=document.createElement('nav');dock.className='mobile-dock';dock.setAttribute('aria-label','Navegación principal');
-  [['dashboard','◈','Inicio'],['dictionary','字','Palabras'],['grammar','句','Frases'],['review','↻','Repasar'],['graph','◎','Mapa'],['import-export','⇅','Cuenta']].forEach(([id,icon,label])=>{
+  [['dashboard','◈','Inicio'],['dictionary','字','Palabras'],['grammar','句','Frases'],['lessons','◇','Lecciones'],['review','↻','Repasar'],['graph','◎','Mapa'],['import-export','⇅','Cuenta']].forEach(([id,icon,label])=>{
     const button=document.createElement('button');button.type='button';button.dataset.page=id;button.setAttribute('aria-current',id==='dashboard'?'page':'false');button.innerHTML=`<span>${icon}</span>${label}`;button.onclick=()=>showPage(id);dock.appendChild(button);
   });document.body.appendChild(dock);
   if(!VaultSync.configured)renderDashboard();
