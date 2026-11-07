@@ -1,7 +1,7 @@
 const {chromium}=require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const server=http.createServer((req,res)=>{
-  const name=req.url==='/'?'index.html':req.url.split('?')[0].slice(1);
+  const name=req.url.split('?')[0].slice(1)||'index.html';
   if(!/^[\w-]+\.(html|js|css|json)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
   res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(name));
 });
@@ -12,7 +12,7 @@ const server=http.createServer((req,res)=>{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.route('**/supabase-config.js*',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE={};'}));
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);await page.waitForSelector('.learning-total');
+    await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);await page.waitForSelector('.learning-total');
     await page.evaluate(()=>showPage('review'));await page.waitForSelector('.practice-pinyin');
     assert.equal(await page.locator('input[value=planned][name=review-state]').isChecked(),true);
     assert.equal(await page.locator('input[value=learning][name=review-state]').isChecked(),true);

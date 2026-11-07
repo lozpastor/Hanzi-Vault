@@ -15,7 +15,7 @@ const HanziLessons = (() => {
     }
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'zh-CN';
-    utterance.rate = 0.82;
+    utterance.rate = VaultGuide.preferences.audio === 'normal' ? 1 : 0.82;
     const voices = speechSynthesis.getVoices();
     const voice = voices.find(item => /^zh[-_]CN$/i.test(item.lang));
     if (voices.length && !voice) {
@@ -38,7 +38,8 @@ const HanziLessons = (() => {
       const count = HANZI_LESSONS.filter(lesson => completed[lesson.id]).length;
       const route = HANZI_LEVELS.flatMap(level => level.ids);
       const next = route.find(id => !completed[id]);
-      root.innerHTML = `<header class="lesson-hero">
+      root.innerHTML = `<header class="lesson-hero lesson-cover">
+        <img class="lesson-cover-art" src="lin.svg" width="360" height="220" alt="">
         <span class="lesson-kicker">Ruta de conversación · 3 niveles</span>
         <h2 tabindex="-1">Mandarín para desenvolverte en China</h2>
         <p>Escucha, repite y responde en voz alta. Puedes seguir la ruta o elegir una situación.</p>
@@ -71,7 +72,7 @@ const HanziLessons = (() => {
           ${blind ? '<details><summary>Ver respuesta</summary>' : ''}
           <div><strong class="word-pinyin" lang="zh-Latn">${pinyin}</strong> · ${spanish}</div>
           <small>Guía aproximada: ${sound}</small>
-          <details><summary>Ver caracteres</summary><span lang="zh-CN">${hanzi}</span></details>
+          <details ${VaultGuide.preferences.characters && !blind ? 'open' : ''}><summary>Caracteres chinos</summary><span lang="zh-CN">${hanzi}</span></details>
           ${blind ? '</details>' : ''}`;
       };
       root.innerHTML = `<button class="btn btn-secondary" data-action="back">← Biblioteca</button>
@@ -168,5 +169,10 @@ const HanziLessons = (() => {
       }
     }
   });
-  return { render };
+  function openLesson(id) {
+    selected = HANZI_LESSONS.find(lesson => lesson.id === id) || null;
+    showPage('lessons');
+    root.querySelector('h2')?.focus();
+  }
+  return { render, openLesson, isComplete: id => Boolean(completed[id]) };
 })();

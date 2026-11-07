@@ -4,7 +4,7 @@ const VaultAuth=(()=>{
   function locked(value){
     document.body.classList.toggle('auth-locked',value);gate().hidden=!value;
     document.querySelector('.app').inert=value;
-    if(value){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));document.getElementById('toast-container').replaceChildren();}
+    if(value){VaultGuide.close();document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));document.getElementById('toast-container').replaceChildren();}
   }
   function note(text){document.getElementById('auth-message').textContent=text;}
   async function request(promise){
@@ -23,6 +23,8 @@ const VaultAuth=(()=>{
     const button=document.getElementById('sync-status');
     button.classList.toggle('profile-button',Boolean(currentUser));
     document.getElementById('profile-name').textContent=currentUser?.email||'';
+    const email=document.getElementById('account-email');
+    if(email)email.textContent=currentUser?.email||'';
     button.title=currentUser?`Cuenta: ${currentUser.email}. Ver perfil y sincronización`:'Iniciar sesión';
   }
   function render(){
@@ -69,10 +71,17 @@ const VaultAuth=(()=>{
     currentUser=next;profile();
     if(event==='PASSWORD_RECOVERY')recovering=true;
     if(!next){document.getElementById('account-password-form')?.reset();const status=document.getElementById('password-message');if(status)status.textContent='';locked(true);mode='login';render();return;}
-    if(recovering&&!document.body.classList.contains('auth-locked'))showPage('import-export');
+    if(recovering&&!document.body.classList.contains('auth-locked'))showPage('profile');
   }
   function loading(){locked(true);note('Sesión verificada. Recuperando tu biblioteca privada…');document.getElementById('auth-form').hidden=true;document.querySelector('.auth-links').hidden=true;}
-  function ready(){const wasLocked=document.body.classList.contains('auth-locked');locked(false);profile();if(recovering&&wasLocked){showPage('import-export');document.getElementById('account-new-password').focus();}}
+  function ready(){
+    const wasLocked=document.body.classList.contains('auth-locked');
+    locked(false);profile();
+    if(!wasLocked)return;
+    VaultGuide.activate(currentUser?.id);
+    if(recovering){showPage('profile');document.getElementById('account-new-password').focus();}
+    else if(!new URLSearchParams(location.search).has('page'))VaultGuide.welcome();
+  }
   function failure(text){note(text);if(currentUser){
     const links=document.querySelector('.auth-links');links.hidden=false;links.replaceChildren();
     for(const [label,action] of [['Reintentar',()=>VaultSync.retry()],['Cerrar sesión',()=>VaultSync.logout()]]){const b=document.createElement('button');b.type='button';b.className='btn btn-secondary';b.textContent=label;b.onclick=action;links.appendChild(b);}

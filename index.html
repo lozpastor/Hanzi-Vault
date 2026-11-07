@@ -440,49 +440,52 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <link rel="stylesheet" href="progress.css?v=20260911">
 <link rel="stylesheet" href="studio.css">
 <link rel="stylesheet" href="learning-design.css">
+<link rel="stylesheet" href="notebook.css">
 
 <div class="app">
 <!-- SIDEBAR -->
-<nav class="sidebar">
+<nav class="sidebar" aria-label="Navegación principal">
   <div class="sidebar-logo">
-    <div class="logo-icon">汉</div>
+    <div class="logo-icon" lang="zh-CN">汉</div>
     <div class="logo-copy">
-      <div class="logo-text">漢字 Vault</div>
-      <div class="logo-sub">Tu vocabulario</div>
+      <div class="logo-text">Hanzi Vault</div>
+      <div class="logo-sub">Cuaderno de mandarín</div>
     </div>
   </div>
   <div class="sidebar-nav">
-    <div class="nav-section">Principal</div>
-    <div class="nav-item active" onclick="showPage('dashboard')">
-      <span class="nav-icon">◈</span><span class="nav-label">Dashboard</span>
-    </div>
-    <div class="nav-item" onclick="showPage('dictionary')">
-      <span class="nav-icon">字</span><span class="nav-label">Mi Diccionario</span>
+    <div class="nav-section">Estudio</div>
+    <button type="button" class="nav-item active" aria-current="page" title="Inicio" onclick="showPage('dashboard')">
+      <span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Inicio</span>
+    </button>
+    <button type="button" class="nav-item" title="Palabras" onclick="showPage('dictionary')">
+      <span class="nav-icon" aria-hidden="true">字</span><span class="nav-label">Palabras</span>
       <span class="nav-badge" id="nav-word-count">0</span>
-    </div>
+    </button>
     <button type="button" class="nav-item lesson-nav" title="Lecciones" onclick="showPage('lessons')"><span class="nav-icon">◇</span><span class="nav-label">Lecciones</span></button>
-    <div class="nav-item" onclick="showPage('grammar')">
+    <button type="button" class="nav-item" title="Frases" onclick="showPage('grammar')">
       <span class="nav-icon">句</span><span class="nav-label">Frases</span>
       <span class="nav-badge" id="nav-grammar-count">0</span>
-    </div>
+    </button>
+    <button type="button" class="nav-item" title="Repasar" onclick="showPage('review')">
+      <span class="nav-icon" aria-hidden="true">↻</span><span class="nav-label">Repasar</span>
+    </button>
     <div class="nav-section">Explorar</div>
-    <div class="nav-item" onclick="showPage('graph')">
-      <span class="nav-icon">◎</span><span class="nav-label">Mapa de Conocimiento</span>
-    </div>
-    <div class="nav-item" onclick="showPage('recommendations')">
-      <span class="nav-icon">✦</span><span class="nav-label">Recomendaciones</span>
-    </div>
-    <div class="nav-section">Práctica</div>
-    <div class="nav-item" onclick="showPage('review')">
-      <span class="nav-icon">↻</span><span class="nav-label">Repasar</span>
-    </div>
-    <div class="nav-item" onclick="showPage('categories')">
-      <span class="nav-icon">⊞</span><span class="nav-label">Categorías</span>
-    </div>
-    <div class="nav-section">Datos</div>
-    <div class="nav-item" onclick="showPage('import-export')">
-      <span class="nav-icon">⇅</span><span class="nav-label">Importar / Exportar</span>
-    </div>
+    <button type="button" class="nav-item" title="Mapa de conocimiento" onclick="showPage('graph')">
+      <span class="nav-icon" aria-hidden="true">◎</span><span class="nav-label">Mapa</span>
+    </button>
+    <button type="button" class="nav-item" title="Recomendaciones" onclick="showPage('recommendations')">
+      <span class="nav-icon" aria-hidden="true">✦</span><span class="nav-label">Recomendaciones</span>
+    </button>
+    <button type="button" class="nav-item" title="Categorías" onclick="showPage('categories')">
+      <span class="nav-icon" aria-hidden="true">⊞</span><span class="nav-label">Categorías</span>
+    </button>
+    <div class="nav-section">Ajustes</div>
+    <button type="button" class="nav-item" title="Perfil" onclick="showPage('profile')">
+      <span class="nav-icon" aria-hidden="true">○</span><span class="nav-label">Perfil</span>
+    </button>
+    <button type="button" class="nav-item" title="Copias y datos" onclick="showPage('import-export')">
+      <span class="nav-icon" aria-hidden="true">⇅</span><span class="nav-label">Copias y datos</span>
+    </button>
   </div>
   <div class="sidebar-footer">
     <button class="theme-toggle" onclick="toggleSidebar()">
@@ -499,7 +502,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <!-- MAIN CONTENT -->
 <div class="main">
   <div class="topbar">
-    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="topbar-title" id="page-title">Inicio</div>
     <div class="level-progress">
       <div class="level-progress-top"><span id="level-label">HSK 1</span><span><span class="level-score" id="level-score">1</span> / 160</span></div>
       <div class="level-track"><div class="level-fill" id="level-fill"></div></div>
@@ -508,17 +511,16 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
     <div class="topbar-right">
       <div class="topbar-search">
         <span class="search-icon">⌕</span>
-        <input type="text" placeholder="Buscar palabras, pinyin, traducción..." id="global-search" oninput="handleGlobalSearch(this.value)">
+        <input type="search" aria-label="Buscar palabras" placeholder="Chino, pinyin o español" id="global-search" oninput="handleGlobalSearch(this.value)">
       </div>
       <div class="topbar-actions">
-        <button type="button" class="sync-status" id="sync-status" onclick="showPage('import-export')" title="Ver cuenta y sincronización"><span class="sync-dot"></span><span class="profile-text"><span id="profile-name"></span><span id="sync-label" aria-live="polite">Inicia sesión</span></span></button>
-        <button class="btn btn-secondary" onclick="showPage('review')">↻ Repasar</button>
-        <button class="btn btn-primary" onclick="openAddWord()">+ Añadir</button>
+        <button type="button" class="sync-status" id="sync-status" onclick="showPage('profile')" title="Ver cuenta y sincronización"><span class="sync-dot"></span><span class="profile-text"><span id="profile-name"></span><span id="sync-label" aria-live="polite">Inicia sesión</span></span></button>
+        <button class="btn btn-primary" onclick="openAddWord()" aria-label="Añadir palabra">+ Añadir</button>
       </div>
     </div>
   </div>
 
-  <div class="content">
+  <main class="content" id="workspace-content">
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
@@ -527,11 +529,15 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
           <span class="lesson-kicker">Curso de conversación</span>
           <h2>Mandarín cotidiano</h2>
           <p>12 lecciones para escuchar, conversar y repasar a tu ritmo.</p>
+          <div class="notebook-actions">
+            <button class="btn btn-primary" onclick="showPage('lessons')">Ver lecciones</button>
+            <button class="btn btn-secondary" onclick="VaultGuide.open()">Pedir ayuda a Lin</button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="showPage('lessons')">Ver lecciones</button>
+        <figure class="notebook-illustration"><img src="lin.svg" width="360" height="220" alt=""><figcaption>01 / LIN · <span lang="zh-CN">林</span></figcaption></figure>
       </section>
       <section class="learning-section">
-        <div class="learning-heading"><h2>Mi progresión</h2><select id="progress-scope" class="filter-select" aria-label="Contenido del panel de progresión" onchange="renderLearningProgress()"><option value="workbook">Mi Excel actual</option><option value="all">Toda mi biblioteca</option></select></div>
+        <div class="learning-heading"><h2>Mi progreso</h2><select id="progress-scope" class="filter-select" aria-label="Contenido del panel de progresión" onchange="renderLearningProgress()"><option value="all">Toda mi biblioteca</option><option value="workbook">Vocabulario del cuaderno</option></select></div>
         <div id="learning-progress"></div><p id="learning-history"></p>
       </section>
       <h2 class="page-title">Mi biblioteca</h2>
@@ -720,18 +726,40 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       <div id="categories-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
     </div>
 
+    <div class="page" id="page-profile">
+      <h2 class="page-title">Perfil</h2>
+      <p class="page-desc">Tu cuenta y tu manera de estudiar.</p>
+      <div class="notebook-profile">
+        <section id="account-panel" class="card" aria-label="Cuenta"></section>
+        <section class="card" aria-labelledby="preferences-heading">
+          <h3 id="preferences-heading">Preferencias</h3>
+          <form id="study-preferences">
+            <label for="study-theme">Apariencia</label>
+            <select id="study-theme" class="filter-select"><option value="system">Según el dispositivo</option><option value="light">Clara</option><option value="dark">Oscura</option></select>
+            <label for="study-level">Nivel de conversación</label>
+            <select id="study-level" class="filter-select"><option value="auto">Según mi progreso</option><option value="1">1 · Primeros intercambios</option><option value="2">2 · Autonomía cotidiana</option><option value="3">3 · Viajes e imprevistos</option></select>
+            <label for="study-audio">Velocidad de escucha</label>
+            <select id="study-audio" class="filter-select"><option value="slow">Pausada</option><option value="normal">Natural</option></select>
+            <label class="preference-check"><input type="checkbox" id="study-characters"> Mostrar caracteres en las lecciones</label>
+            <button class="btn btn-primary" type="submit">Guardar preferencias</button>
+            <p id="study-settings-status" role="status"></p>
+          </form>
+        </section>
+        <section class="card notebook-links" aria-labelledby="tools-heading">
+          <h3 id="tools-heading">Herramientas</h3>
+          <button class="btn btn-secondary" onclick="VaultGuide.open(true)">Volver a ver el tutorial</button>
+          <button class="btn btn-secondary" onclick="showPage('import-export')">Copias y datos</button>
+          <button class="btn btn-secondary" onclick="showPage('graph')">Mapa de conocimiento</button>
+          <button class="btn btn-secondary" onclick="showPage('recommendations')">Recomendaciones</button>
+          <button class="btn btn-secondary" onclick="showPage('categories')">Categorías</button>
+        </section>
+      </div>
+    </div>
+
     <!-- IMPORT/EXPORT -->
     <div class="page" id="page-import-export">
       <h2 class="page-title">Importar / Exportar</h2>
       <p class="page-desc">Haz copias de seguridad o migra tus datos.</p>
-      <section id="account-panel" class="card" style="margin-bottom:18px;line-height:1.8"></section>
-      <div class="card" style="margin-bottom:18px;display:flex;align-items:center;gap:14px">
-        <div class="io-icon" style="background:var(--green-bg);color:var(--green)">☁</div>
-        <div>
-          <div class="io-title">Una cuenta, todos tus dispositivos</div>
-          <div class="io-desc" style="margin:0">Inicia sesión con el mismo correo y combina la biblioteca de cada dispositivo una vez. Cuando aparezca <strong>Sincronizado</strong>, las palabras, frases y estados estarán guardados en tu cuenta. Se conserva una copia local para recuperar tus datos.</div>
-        </div>
-      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
         <div class="io-card">
           <div class="io-icon" style="background:var(--green-bg);color:var(--green)">↓</div>
@@ -770,12 +798,15 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       </div>
     </div>
 
-  </div><!-- /content -->
+  </main>
 </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- FAB -->
-<button class="fab" onclick="openAddWord()" title="Añadir palabra">+</button>
+<button class="guide-launch" type="button" onclick="VaultGuide.open()" aria-label="Abrir guía de Lin"><img src="lin.svg" alt="" width="42" height="32"> Lin</button>
+<dialog id="guide-dialog" aria-labelledby="guide-heading">
+  <header class="guide-header"><span class="lesson-kicker">Guía de estudio</span><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar guía">✕</button></form></header>
+  <div id="guide-content"></div>
+</dialog>
 
 <!-- QUICK ADD WORD MODAL -->
 <div class="modal-overlay" id="modal-quick-add">
@@ -959,13 +990,14 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="hsk-reference.js?v=20260912-boot"></script>
 <script src="progress.js?v=20260912-boot"></script>
 <script src="supabase-config.js?v=20260912-boot"></script>
-<script src="auth.js?v=20260912-boot"></script>
-<script src="sync.js?v=20260912-boot"></script>
-<script src="review.js?v=20260912-boot"></script>
+<script src="auth.js?v=cuaderno"></script>
+<script src="sync.js?v=cuaderno"></script>
+<script src="review.js?v=cuaderno"></script>
 <script src="knowledge-sphere.js?v=20260912-boot"></script>
 <script src="lexical-search.js?v=20260912-boot"></script>
 <script src="lessons-data.js"></script>
 <script src="lessons-practice.js"></script>
+<script src="vault-guide.js"></script>
 <script src="lessons.js"></script>
 <script>
 // ============================================================
@@ -1100,6 +1132,8 @@ function setSyncStatus(state) {
   if (!status || !label) return;
   status.className = `sync-status ${state === 'online' ? 'online' : state === 'error' ? 'error' : ''}`;
   label.textContent = state === 'online' ? 'Sincronizado' : state === 'saving' ? 'Guardando…' : state === 'error' ? 'Sin conexión' : 'Guardado local';
+  const accountState = document.getElementById('account-sync-state');
+  if (accountState) accountState.textContent = label.textContent;
   if(VaultSync.configured)VaultAuth.profile();
 }
 
@@ -1112,22 +1146,30 @@ function genId() {
 // ============================================================
 const pageTitles = {
   lessons: 'Lecciones',
-  dashboard:'Dashboard',dictionary:'Mi Diccionario',grammar:'Frases y estructuras',
+  dashboard:'Inicio',dictionary:'Palabras',grammar:'Frases y estructuras',profile:'Perfil',
   graph:'Mapa de Conocimiento',recommendations:'Recomendaciones',review:'Sesión de Repaso',
-  categories:'Categorías','import-export':'Importar / Exportar'
+  categories:'Categorías','import-export':'Copias y datos'
 };
 
 function showPage(id) {
   if(!VaultSync.canEdit)return;
+  const page = document.getElementById('page-'+id);
+  if (!page) return;
+  const changed = !page.classList.contains('active');
   document.querySelectorAll('.mobile-dock button').forEach(button=>button.setAttribute('aria-current',button.dataset.page===id?'page':'false'));
   if (id !== 'graph') KnowledgeSphere.stop();
   document.querySelector('.app').classList.toggle('graph-mode', id === 'graph');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-'+id);
-  if (page) page.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    n.removeAttribute('aria-current');
+  });
+  page.classList.add('active');
   const navItem = [...document.querySelectorAll('.nav-item')].find(n => n.getAttribute('onclick') === `showPage('${id}')`);
-  if (navItem) navItem.classList.add('active');
+  if (navItem) {
+    navItem.classList.add('active');
+    navItem.setAttribute('aria-current', 'page');
+  }
   document.getElementById('page-title').textContent = pageTitles[id] || id;
   // Page-specific renders
   if (id === 'dashboard') renderDashboard();
@@ -1138,6 +1180,12 @@ function showPage(id) {
   if (id === 'recommendations') generateRecommendations();
   if (id === 'review') renderReview();
   if (id === 'categories') renderCategories();
+  if (id === 'profile') VaultGuide.renderProfile();
+  if (id !== 'lessons') window.speechSynthesis?.cancel();
+  if (changed) {
+    document.getElementById('workspace-content').scrollTop = 0;
+    window.scrollTo(0, 0);
+  }
 }
 
 // ============================================================
@@ -1318,6 +1366,8 @@ function saveLearnedLessonPhrases(phrases) {
       id: genId(), pattern: hanzi, meaning: spanish, exampleZh: hanzi,
       examplePinyin: pinyin, exampleEs: spanish, explanation: `Pronunciación aproximada: ${sound}`,
       date: new Date().toISOString(), ...existing,
+      nextReview: existing?.status === 'learning' && existing.nextReview
+        ? existing.nextReview : new Date(Date.now() + 7 * 86400000).toISOString(),
       status: 'learned', mastery: 'ready'
     };
     if (index < 0) next.unshift(item);
@@ -2054,12 +2104,8 @@ function handleGlobalSearch(query) {
   }, 30);
 }
 
-let isDark = false;
 function toggleTheme() {
-  isDark = !isDark;
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
-  document.getElementById('theme-icon').textContent = isDark ? '☀' : '◑';
-  document.getElementById('theme-label').textContent = isDark ? 'Tema claro' : 'Tema oscuro';
+  VaultGuide.toggleTheme();
 }
 
 // ============================================================
@@ -2116,13 +2162,14 @@ async function init() {
   }
   if(!VaultSync.configured)updateNavBadges();
   const dock=document.createElement('nav');dock.className='mobile-dock';dock.setAttribute('aria-label','Navegación principal');
-  [['dashboard','◈','Inicio'],['dictionary','字','Palabras'],['grammar','句','Frases'],['lessons','◇','Lecciones'],['review','↻','Repasar'],['graph','◎','Mapa'],['import-export','⇅','Cuenta']].forEach(([id,icon,label])=>{
-    const button=document.createElement('button');button.type='button';button.dataset.page=id;button.setAttribute('aria-current',id==='dashboard'?'page':'false');button.innerHTML=`<span>${icon}</span>${label}`;button.onclick=()=>showPage(id);dock.appendChild(button);
+  [['dashboard','⌂','Inicio'],['lessons','◇','Lecciones'],['dictionary','字','Palabras'],['grammar','句','Frases'],['review','↻','Repaso'],['profile','○','Perfil']].forEach(([id,icon,label])=>{
+    const button=document.createElement('button');button.type='button';button.dataset.page=id;button.setAttribute('aria-current',id==='dashboard'?'page':'false');button.innerHTML=`<span aria-hidden="true">${icon}</span>${label}`;button.onclick=()=>showPage(id);dock.appendChild(button);
   });document.body.appendChild(dock);
   if(!VaultSync.configured)renderDashboard();
   const requestedPage = new URLSearchParams(location.search).get('page');
   await VaultSync.init();
   if (requestedPage && document.getElementById(`page-${requestedPage}`)) showPage(requestedPage);
+  if (!VaultSync.configured && !requestedPage) VaultGuide.welcome();
   document.addEventListener('keydown', event => {
     if(!VaultSync.canEdit)return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {

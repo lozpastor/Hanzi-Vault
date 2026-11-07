@@ -14,3 +14,15 @@ El Dashboard reproduce los cuadros de texto de la hoja Estado del Excel: HSK 1�
 `hsk-reference.js` contiene la correspondencia léxica del [listado oficial HSK 2.0 de 2015](https://old.chinesetest.cn/userfiles/file/HSK/HSK-2015.xlsx). Los niveles existentes se conservan. Las palabras nuevas y las que carecían de nivel se clasifican por coincidencia exacta; fuera del listado se usa una estimación por caracteres, o HSK 6 provisional si no hay información, señalada con ≈ y editable. No equivale al nuevo HSK 3.0.
 
 Pruebas: `node verify-account-journey.cjs`, `node verify-progress.cjs`, `node verify-sync.cjs`, `node verify-experience.cjs`. La prueba opcional `node verify-supabase-live.cjs` usa el token local ignorado para crear y eliminar cuentas temporales y comprobar el servicio real.
+
+## Lin, guía de estudio
+
+El tutorial y las recomendaciones funcionan en el navegador sin un servicio de IA. Las preferencias se guardan por cuenta y navegador. El progreso de lecciones sigue guardándose en este dispositivo.
+
+Para habilitar la práctica con IA en una instalación con Supabase:
+
+1. Ejecuta `lin-quota.sql` en el proyecto. Limita las solicitudes a 8 diarias por cuenta y 200 para toda la aplicación, con reinicio a medianoche UTC.
+2. Configura `OPENAI_API_KEY` y `LIN_OPENAI_MODEL` como secretos de Edge Functions y despliega `lin-guide` desde `supabase/functions/lin-guide`. Mantén activada la verificación de sesión. La función comprueba además el usuario con Supabase Auth.
+3. Añade `guideAI: true` al objeto público en `supabase-config.js` cuando el servicio esté operativo. Nunca incluyas claves privadas en ese archivo. La API tiene coste por uso.
+
+Al pulsar «Enviar a Lin» se envían a OpenAI el mensaje, el nivel de conversación y el tema sugerido. La función no envía el correo, el identificador de cuenta ni la biblioteca. La respuesta se muestra como texto y no se guarda en Hanzi Vault.

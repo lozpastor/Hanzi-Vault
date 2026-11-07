@@ -1,5 +1,8 @@
 const Review = (() => {
-  let queue=[], position=0, revealed=false, results=[], answering=false;
+  let queue=[], position=0, revealed=false, results=[], answering=false, dueOnly=false;
+  function isDue(item) {
+    return item.status !== 'planned' && Boolean(item.nextReview) && Date.parse(item.nextReview) <= Date.now();
+  }
   function settings() {
     const checked=name=>[...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i=>i.value);
     return {states:checked('review-state'),types:checked('review-type'),limit:Number(document.getElementById('review-limit').value)};
@@ -12,19 +15,21 @@ const Review = (() => {
       details.className='practice-settings';details.open=innerWidth>600;summary.textContent='Configurar sesión';details.append(summary,root.firstElementChild);root.appendChild(details);
       if(stored){for(const name of ['state','type']) document.querySelectorAll(`input[name="review-${name}"]`).forEach(i=>i.checked=(stored[name==='state'?'states':'types']||[]).includes(i.value));}
       if([10,20,40,100].includes(stored?.limit))document.getElementById('review-limit').value=stored.limit;
-      document.getElementById('review-start').onclick=start;
-      document.getElementById('review-options').onchange=start;
+      document.getElementById('review-start').onclick=()=>start();
+      document.getElementById('review-options').onchange=()=>start();
     }
     if(innerWidth<=600)document.querySelector('.practice-settings').open=false;
     start();
   }
-  function start() {
+  function start(onlyDue = false) {
+    dueOnly=onlyDue;
     const opts=settings();localStorage.setItem('hanzi_review_options',JSON.stringify(opts));
-    document.querySelector('.practice-settings summary').textContent='Configurar sesión · '+opts.states.map(s=>({planned:'Por conocer',learning:'En proceso',learned:'Aprendido'}[s])).join(' + ');
-    queue=opts.types.flatMap(type=>DB[type].filter(i=>opts.states.includes(i.status||'learning')).map(i=>({...i,kind:type})));
+    document.querySelector('.practice-settings summary').textContent=dueOnly ? 'Configurar sesión · Repaso pendiente' : 'Configurar sesión · '+opts.states.map(s=>({planned:'Por conocer',learning:'En proceso',learned:'Aprendido'}[s])).join(' + ');
+    const types=dueOnly?['words','grammar']:opts.types;
+    queue=types.flatMap(type=>DB[type].filter(i=>dueOnly?isDue(i):opts.states.includes(i.status||'learning')).map(i=>({...i,kind:type})));
     for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]];}
     const available=queue.length;queue=queue.slice(0,opts.limit);position=0;revealed=false;results=[];
-    document.getElementById('review-available').textContent=`${available} fichas disponibles con esta selección. Se incluyen también las que aún no vencen para repaso.`;
+    document.getElementById('review-available').textContent=dueOnly?`${available} fichas pendientes de repaso.`:`${available} fichas disponibles con esta selección. Se incluyen también las que aún no vencen para repaso.`;
     render();
   }
   function render() {
@@ -55,5 +60,5 @@ const Review = (() => {
     if(e.code==='Space'){e.preventDefault();reveal();}
     if(['1','2','3'].includes(e.key)&&revealed){e.preventDefault();answer({1:'hard',2:'medium',3:'easy'}[e.key]);}
   });
-  return {init,start,reveal,answer};
+  return {init,start,reveal,answer,isDue};
 })();

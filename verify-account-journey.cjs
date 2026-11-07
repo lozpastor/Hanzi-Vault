@@ -1,7 +1,7 @@
 const {chromium}=require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs');
 const server=http.createServer((req,res)=>{
-  const name=req.url==='/'?'index.html':req.url.split('?')[0].slice(1);
+  const name=req.url.split('?')[0].slice(1)||'index.html';
   if(!/^[\w-]+\.(html|js|css|json)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
   res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(name));
 });
@@ -11,12 +11,14 @@ const server=http.createServer((req,res)=>{
   try{
     const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
-    await page.route('**/supabase-config.js*',r=>r.fulfill({contentType:'text/javascript',body:"window.HANZI_SUPABASE={url:'https://test.supabase.co',publishableKey:'test'};"}));
+    await page.route('**/supabase-config.js*',r=>r.fulfill({contentType:'text/javascript',body:"window.HANZI_SUPABASE={url:'https://test.supabase.co',publishableKey:'test',guideAI:true};"}));
     await page.addInitScript(()=>{
       window.failRead=localStorage.getItem('test-offline')==='true';window.emailCalls=0;window.cloud=JSON.parse(localStorage.getItem('test-cloud')||'{}');
       let callback;
       const current=()=>{const id=localStorage.getItem('test-session');return id?{user:{id,email:id+'@example.com'}}:null;};
-      window.supabase={createClient:()=>({auth:{
+      window.supabase={createClient:()=>({functions:{invoke:async(name,{body})=>{
+        window.guideRequest={name,body};return {data:{answer:'Di nǐ hǎo para saludar.'}};
+      }},auth:{
         onAuthStateChange:fn=>{callback=fn;},
         getSession:async()=>({data:{session:current()}}),
         getUser:async()=>({data:{user:current()?.user}}),
@@ -30,7 +32,7 @@ const server=http.createServer((req,res)=>{
       })};
       if(!localStorage.getItem('test-first')){localStorage.setItem('test-first','1');localStorage.setItem('hanzivault_db',JSON.stringify({words:[{id:'legacy',zh:'学习',pinyin:'xuexi',status:'learning'}],grammar:[],categories:[],relations:[]}));}
     });
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
     await page.waitForSelector('#auth-form');
     assert.equal(await page.locator('.app').isVisible(),false);
     assert.equal(await page.locator('.fab').isVisible(),false);
@@ -55,11 +57,19 @@ const server=http.createServer((req,res)=>{
     await login('a');
     assert.equal(await page.evaluate(()=>DB.words.length),0);
     assert.equal(await page.locator('#profile-name').textContent(),'a@example.com');
-    assert.equal(await page.locator('#sync-status').isVisible(),true);
-    const profileBox=await page.locator('#sync-status').boundingBox();assert(profileBox.x>=0&&profileBox.x+profileBox.width<=390);
+    await page.locator('.mobile-dock').getByRole('button',{name:'Perfil'}).click();
+    assert.equal(await page.locator('#account-email').textContent(),'a@example.com');
+    assert.equal(await page.locator('#account-sync-state').textContent(),'Sincronizado');
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:'qa-profile-mobile.png'});
-    await page.evaluate(()=>showPage('import-export'));
+    await page.getByRole('button',{name:'Abrir guía de Lin'}).click();
+    assert.equal(await page.evaluate(()=>window.guideRequest),undefined);
+    await page.getByLabel('Práctica con IA').fill('¿Cómo saludo?');
+    await page.getByRole('button',{name:'Enviar a Lin'}).click();
+    await page.getByText('Di nǐ hǎo para saludar.').waitFor();
+    assert.deepEqual(await page.evaluate(()=>Object.keys(window.guideRequest.body).sort()),['level','question','topic']);
+    await page.getByRole('button',{name:'Cerrar guía'}).click();
+    await page.evaluate(()=>showPage('profile'));
     page.once('dialog',d=>d.accept());await page.locator('#account-import-legacy').click();
     await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
     assert(await page.evaluate(()=>DB.words.some(w=>w.id==='legacy')));
@@ -71,7 +81,7 @@ const server=http.createServer((req,res)=>{
     await page.locator('#account-logout').click();await page.waitForSelector('#auth-email');
     assert.equal(await page.evaluate(()=>DB.words.length),0);
     await login('b');assert.equal(await page.evaluate(()=>DB.words.length),0);
-    await page.evaluate(()=>showPage('import-export'));assert.equal(await page.locator('#account-import-legacy').isVisible(),false);
+    await page.evaluate(()=>showPage('profile'));assert.equal(await page.locator('#account-import-legacy').isVisible(),false);
     await page.locator('#account-logout').click();await page.waitForSelector('#auth-email');await login('a');
     assert.equal(await page.evaluate(()=>DB.words.length),2);
     await page.evaluate(()=>localStorage.setItem('test-offline','true'));
