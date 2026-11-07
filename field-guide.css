@@ -1,0 +1,114 @@
+.dashboard-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 64px);
+  padding-block: 22px 28px;
+  align-items: center;
+}
+
+.dashboard-route h2 {
+  font-size: clamp(40px, 5.2vw, 78px);
+  line-height: .99;
+  margin-block: 14px 16px;
+}
+
+.dashboard-route p { max-width: 38ch; line-height: 1.65; color: var(--text2); }
+.field-plate { margin: 0; }
+.field-plate img { display: block; width: 100%; height: auto; border-radius: 3px 3px 0 0; }
+.field-plate figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  padding-block: 7px;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+.field-plate figcaption span { font-size: 15px; color: var(--seal); }
+
+#auth-gate:has(.auth-field) {
+  padding: 0;
+  gap: 0;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  background: var(--bg2);
+  justify-content: stretch;
+  width: 100%;
+}
+#auth-gate:has(.auth-field)::before { content: none; }
+.auth-field {
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+  background: #233c33;
+  color: #f8edda;
+}
+.auth-field-copy { padding: clamp(24px, 5vw, 78px); align-self: center; }
+.auth-field-copy .lesson-kicker { color: #edc690; }
+.auth-field-title {
+  font: 400 clamp(38px, 5.1vw, 76px)/.98 "DM Serif Display", Georgia, serif;
+  letter-spacing: -.025em;
+  margin-block: 22px;
+}
+.auth-field-copy p:last-child { max-width: 35ch; color: #e6dbc7; line-height: 1.6; }
+.auth-field img { display: block; width: 100%; height: auto; align-self: end; }
+#auth-gate:has(.auth-field) .auth-shell { border: 0; margin-block: 22px; }
+
+.guide-launch {
+  width: 88px;
+  min-height: 76px;
+  border: 0;
+  box-shadow: none;
+  background: none;
+  padding: 0;
+}
+.lin-sprite { display: block; width: 100%; height: auto; overflow: visible; pointer-events: none; }
+.guide-launch[data-direction=left] .lin-sprite { scale: -1 1; }
+.lin-body, .lin-wing, .lin-feet { transform-box: view-box; transform-origin: 50% 64%; }
+.lin-closed-eye, .lin-open-beak, .lin-signal { opacity: 0; }
+.guide-launch[data-state=idle] .lin-body { animation: lin-breathe 4s ease-in-out infinite; }
+.guide-launch[data-state=idle] .lin-eye { animation: lin-blink 7s infinite; }
+.guide-launch[data-state=curious] .lin-body { transform: rotate(-10deg) translateY(-2px); }
+.guide-launch[data-state=curious] .lin-signal,
+.guide-launch[data-state=happy] .lin-signal { opacity: 1; }
+.guide-launch[data-state=flying] .lin-wing,
+.guide-launch[data-state=dragging] .lin-wing { animation: lin-flap .24s ease-in-out infinite alternate; }
+.guide-launch[data-state=flying] .lin-feet,
+.guide-launch[data-state=dragging] .lin-feet { transform: translate(-5px, -5px) rotate(12deg); }
+.guide-launch[data-state=dragging] .lin-body { transform: rotate(-13deg); }
+.guide-launch[data-state=happy] .lin-body,
+#guide-dialog[data-lin-state=happy] .lin-body { animation: lin-spring .48s ease-out; }
+.guide-launch[data-state=sleeping] .lin-body { transform: translateY(4px) rotate(8deg); }
+.guide-launch[data-state=sleeping] .lin-eye { opacity: 0; }
+.guide-launch[data-state=sleeping] .lin-closed-eye { opacity: 1; }
+[data-state=speaking] .lin-open-beak,
+[data-lin-state=speaking] .lin-open-beak { animation: lin-talk .32s steps(1) 5; }
+[data-lin-state=thinking] .lin-body { transform: rotate(-13deg); }
+[data-lin-state=thinking] .lin-signal { animation: lin-blink 1.15s infinite alternate; opacity: 1; }
+
+@keyframes lin-breathe { 50% { transform: scaleY(1.055) translateY(-1px); } }
+@keyframes lin-blink { 0%, 92%, 97%, 100% { opacity: 1; } 94% { opacity: 0; } }
+@keyframes lin-flap { from { transform: rotate(12deg); } to { transform: rotate(64deg) translateY(-8px); } }
+@keyframes lin-talk { 50% { opacity: 1; } }
+@keyframes lin-spring { 45% { transform: translateY(-9px) rotate(-9deg); } }
+
+#guide-dialog:not(.lin-tour) .guide-header::before { content: none; }
+.guide-portrait { width: 60px; margin: -8px 8px -4px 0; }
+.guide-header .lesson-kicker { margin-inline-end: auto; }
+#guide-dialog.lin-tour .guide-portrait { display: none; }
+.lin-practice:not(:empty) { border-block: 1px solid var(--border2); margin-top: 14px; padding-block: 8px; }
+
+@media (max-width: 720px) {
+  .dashboard-route { grid-template-columns: 1fr; }
+  .dashboard-route h2 { font-size: clamp(39px, 10vw, 60px); }
+  .field-plate img { max-height: 210px; object-fit: cover; }
+  #auth-gate:has(.auth-field) { grid-template-columns: minmax(0, 1fr); }
+  .auth-field { display: block; position: relative; overflow: hidden; }
+  .auth-field-copy { position: relative; z-index: 1; background: #233c33ba; }
+  .auth-field-title { font-size: clamp(31px, 8vw, 52px); margin-block: 12px; }
+  .auth-field img { position: absolute; inset: 0; height: 100%; object-fit: cover; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lin-sprite *, .lin-sprite { animation: none !important; transition: none !important; }
+}

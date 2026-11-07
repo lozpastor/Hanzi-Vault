@@ -43,9 +43,15 @@ async function verify() {
     await page.mouse.move(before.x + 25, before.y + 25);
     await page.mouse.down();
     await page.mouse.move(before.x - 130, before.y - 110, { steps: 12 });
+    assert.equal(await pet.getAttribute('data-state'), 'dragging');
     await page.mouse.up();
+    assert.equal(await pet.getAttribute('data-state'), 'happy');
     assert((await pet.boundingBox()).x < before.x - 100);
     assert.equal(await guide.isVisible(), false);
+    const dragged = await pet.boundingBox();
+    await pet.focus();
+    await page.keyboard.press('ArrowRight');
+    assert((await pet.boundingBox()).x > dragged.x + 20);
     await page.locator('.sidebar').getByRole('button', { name: 'Perfil' }).click();
     await page.getByLabel('Nivel de conversación').selectOption('3');
     await page.getByLabel('Apariencia').selectOption('dark');
@@ -61,6 +67,10 @@ async function verify() {
     });
     await page.getByRole('button', { name: 'Abrir guía de Lin' }).click();
     assert.match(await guide.textContent(), /Nivel 3.*1 ficha pendiente/s);
+    await guide.getByRole('button', { name: 'Ensayar un diálogo guiado' }).click();
+    await guide.getByText('Ver una respuesta').click();
+    await guide.getByRole('button', { name: 'Seguir' }).click();
+    assert.match(await guide.locator('.lin-practice').innerText(), /Turno 2/);
     await guide.getByRole('button', { name: 'Ir al repaso' }).click();
     assert.equal(await page.locator('.practice-hanzi').textContent(), '水');
     await page.setViewportSize({ width: 390, height: 844 });

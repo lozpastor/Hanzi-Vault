@@ -32,7 +32,9 @@ window.HanziBoot = (function () {
   return { fail:fail, done:function () { finished=true; clearTimeout(timeout); }, get failed() { return failed; } };
 })();
 </script>
-<title>漢字 Vault — Tu diccionario de chino</title>
+<title>Hanzi Vault · Mandarín para el día a día</title>
+<meta name="description" content="Practica mandarín con lecciones de conversación, una biblioteca personal y repaso.">
+<meta name="theme-color" content="#233c33">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
@@ -441,6 +443,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <link rel="stylesheet" href="studio.css">
 <link rel="stylesheet" href="learning-design.css">
 <link rel="stylesheet" href="notebook.css">
+<link rel="stylesheet" href="field-guide.css">
 
 <div class="app">
 <!-- SIDEBAR -->
@@ -526,15 +529,15 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
     <div class="page active" id="page-dashboard">
       <section class="lesson-hero dashboard-route">
         <div>
-          <span class="lesson-kicker">Curso de conversación</span>
-          <h2>Mandarín cotidiano</h2>
-          <p>12 lecciones para escuchar, conversar y repasar a tu ritmo.</p>
+          <span class="lesson-kicker">Hanzi Vault / Cuaderno de conversación</span>
+          <h2>Mandarín para<br>el día a día.</h2>
+          <p>Practica cómo pedir la cuenta, coger el metro o empezar una conversación.</p>
           <div class="notebook-actions">
             <button class="btn btn-primary" onclick="showPage('lessons')">Ver lecciones</button>
             <button class="btn btn-secondary" onclick="VaultGuide.open()">Pedir ayuda a Lin</button>
           </div>
         </div>
-        <figure class="notebook-illustration"><img src="lin.svg" width="360" height="220" alt=""><figcaption>01 / LIN · <span lang="zh-CN">林</span></figcaption></figure>
+        <figure class="field-plate"><img src="river-study.svg" width="740" height="430" alt=""><figcaption>01 / ESTUDIO DEL RÍO <span lang="zh-CN">江</span></figcaption></figure>
       </section>
       <section class="learning-section">
         <div class="learning-heading"><h2>Mi progreso</h2><select id="progress-scope" class="filter-select" aria-label="Contenido del panel de progresión" onchange="renderLearningProgress()"><option value="all">Toda mi biblioteca</option><option value="workbook">Vocabulario del cuaderno</option></select></div>
@@ -802,9 +805,9 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 </div><!-- /main -->
 </div><!-- /app -->
 
-<button class="guide-launch" type="button" aria-label="Abrir guía de Lin" title="Lin · pulsa para hablar o arrastra para mover"><img src="lin.svg" alt="" width="84" height="54" draggable="false"><span class="lin-name">Lin</span></button>
+<button class="guide-launch" type="button" aria-label="Abrir guía de Lin" title="Lin · pulsa para hablar o mueve con las flechas"></button>
 <dialog id="guide-dialog" aria-labelledby="guide-heading">
-  <header class="guide-header"><span class="lesson-kicker">Guía de estudio</span><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar guía">✕</button></form></header>
+  <header class="guide-header"><span class="guide-portrait" aria-hidden="true"></span><span class="lesson-kicker">Guía de estudio</span><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar guía">✕</button></form></header>
   <div id="guide-content"></div>
 </dialog>
 
@@ -990,7 +993,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="hsk-reference.js?v=20260912-boot"></script>
 <script src="progress.js?v=20260912-boot"></script>
 <script src="supabase-config.js?v=20260912-boot"></script>
-<script src="auth.js?v=cuaderno"></script>
+<script src="auth.js?v=rio"></script>
 <script src="sync.js?v=cuaderno"></script>
 <script src="review.js?v=cuaderno"></script>
 <script src="knowledge-sphere.js?v=20260912-boot"></script>
