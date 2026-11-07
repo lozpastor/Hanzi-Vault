@@ -148,3 +148,109 @@ h2.page-title, .learning-heading h2, .auth-shell h1, #guide-heading {
 @media (prefers-reduced-motion: reduce) {
   .sidebar, .level-fill, .word-card, .grammar-card, .nav-item { transition: none; }
 }
+
+.dashboard-route {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding-inline: 0;
+}
+#page-dashboard .learning-grid { gap: clamp(16px, 5vw, 64px); }
+#page-dashboard :is(.learning-panel, .stat-card, .card),
+#page-profile .card, #page-import-export .io-card {
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding-inline: 0;
+}
+#page-profile .notebook-profile { gap: 22px clamp(20px, 5vw, 64px); }
+.words-grid, .grammar-grid { column-gap: clamp(18px, 4vw, 46px); row-gap: 0; }
+.words-grid .word-card, .grammar-grid .grammar-card, #rec-grid .rec-card {
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  border-radius: 0;
+  padding-inline: 0;
+}
+#rec-grid .rec-card { padding-block: 14px; }
+#page-lessons .lesson-library { display: block; }
+#page-lessons .lesson-link {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  min-height: 0;
+  padding: 13px 5px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+#page-lessons .lesson-link:hover { background: var(--accent-bg); }
+#page-lessons .lesson-link small { grid-row: 2; }
+#page-lessons .lesson-meta { grid-column: 2; grid-row: 1 / span 2; align-self: center; padding: 0; margin: 0; }
+#page-lessons .lesson-cover { background: transparent; border: 0; padding-inline: 0; }
+.guide-launch {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  width: 76px;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.guide-launch img { width: 84px; height: 50px; object-fit: contain; pointer-events: none; }
+.lin-name { background: var(--bg2); color: var(--text); font-size: 11px; border: 1px solid var(--border); padding: 0 7px; border-radius: 4px; }
+.guide-launch[data-direction=left] img { scale: -1 1; }
+.guide-launch[data-state=dragging] { cursor: grabbing; }
+.guide-launch[data-state=flying] { transition: left .62s ease, top .62s ease; }
+.guide-launch[data-state=flying] img { animation: lin-hop .33s ease-in-out infinite alternate; }
+.guide-launch[data-state=sleeping] img { opacity: .8; rotate: -9deg; }
+.guide-launch[data-state=sleeping]::after {
+  content: "z";
+  position: absolute;
+  inset: 4px 9px auto auto;
+  color: var(--seal);
+  font: italic 16px Georgia, serif;
+}
+.guide-launch:not([data-state]):hover img, .guide-launch[data-state=idle]:hover img {
+  animation: lin-hop .22s ease-in-out 2 alternate;
+}
+.guide-launch[data-state=speaking] img { animation: lin-hop .55s ease-in-out 2 alternate; }
+@keyframes lin-hop { to { transform: translateY(-7px) rotate(-5deg); } }
+#guide-dialog.lin-tour {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 102;
+  width: min(365px, calc(100vw - 28px));
+  max-height: calc(100dvh - 145px);
+  box-shadow: 0 10px 26px #15211926;
+  border-inline-start: 3px solid var(--accent);
+}
+[data-lin-target] { outline: 2px dashed var(--seal); outline-offset: -3px; }
+.sidebar [data-lin-target] { outline-color: #e5ab93; }
+#guide-dialog:not(.lin-tour) .guide-header::before {
+  content: "";
+  width: 63px;
+  height: 38px;
+  background: url("lin.svg") center / contain no-repeat;
+}
+#guide-dialog[data-lin-state=thinking] .guide-header::before { animation: lin-hop .75s ease-in-out infinite alternate; }
+#guide-dialog[data-lin-state=speaking] .guide-header::before { animation: lin-hop .55s ease-in-out 2 alternate; }
+.lin-question { font-size: 19px; }
+.guide-answer:not(:empty) { max-height: min(27vh, 240px); overflow-y: auto; margin-top: 14px; }
+.guide-answer p { border-top: 1px solid var(--border2); padding-top: 8px; }
+.guide-launch:focus-visible { outline: 2px solid var(--accent); }
+@media (max-width: 600px) {
+  #page-lessons .lesson-link { grid-template-columns: minmax(0, 1fr); }
+  #page-lessons .lesson-meta { grid-column: 1; grid-row: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-launch, .guide-launch img, #guide-dialog .guide-header::before { animation: none !important; transition: none !important; }
+}

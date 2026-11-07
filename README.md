@@ -25,4 +25,4 @@ Para habilitar la práctica con IA en una instalación con Supabase:
 2. Configura `OPENAI_API_KEY` y `LIN_OPENAI_MODEL` como secretos de Edge Functions y despliega `lin-guide` desde `supabase/functions/lin-guide`. Mantén activada la verificación de sesión. La función comprueba además el usuario con Supabase Auth.
 3. Añade `guideAI: true` al objeto público en `supabase-config.js` cuando el servicio esté operativo. Nunca incluyas claves privadas en ese archivo. La API tiene coste por uso.
 
-Al pulsar «Enviar a Lin» se envían a OpenAI el mensaje, el nivel de conversación y el tema sugerido. La función no envía el correo, el identificador de cuenta ni la biblioteca. La respuesta se muestra como texto y no se guarda en Hanzi Vault.
+Al pulsar «Enviar a Lin» o elegir una propuesta se envían a OpenAI el mensaje, hasta dos intercambios anteriores, el nivel de conversación y el tema sugerido. La función no envía el correo, el identificador de cuenta ni la biblioteca. La conversación se muestra como texto y se descarta al cerrar a Lin.
