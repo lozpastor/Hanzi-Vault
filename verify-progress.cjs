@@ -19,7 +19,7 @@ const server = http.createServer((req,res) => {
     const page = await browser.newPage({viewport:{width:1440,height:1000}});
     await page.route('**/supabase-config.js*',route=>route.fulfill({contentType:'text/javascript',body:'window.HANZI_SUPABASE = {};'}));
     const errors=[]; page.on('pageerror',err=>errors.push(err.message));
-    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
     await page.waitForSelector('.learning-total');
     const counts = await page.evaluate(() => ['words','grammar'].map(key => {
       const rows=DB[key].filter(i=>i.workbookSource===WORKBOOK_SEED.version);

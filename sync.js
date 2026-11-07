@@ -207,16 +207,18 @@ const VaultSync = (() => {
   }
   async function init(){
     const host=document.getElementById('account-panel');
-    host.innerHTML='<h3>Tu cuenta y tus dispositivos</h3><p id="account-message" role="status"></p><button id="account-sync" class="btn btn-secondary" hidden>Comprobar sincronización</button><button id="account-logout" class="btn btn-secondary" hidden>Cerrar sesión</button><button id="account-import-legacy" class="btn btn-secondary" hidden>Importar mi biblioteca anterior de este navegador</button><button id="account-backup" class="btn btn-secondary">Descargar copia anterior de esta cuenta</button>';
+    host.innerHTML='<h3>Cuenta y sincronización</h3><p id="account-email"></p><p id="account-sync-state" class="lesson-kicker" role="status"></p><p id="account-message" role="status"></p><div class="notebook-actions"><button id="account-sync" class="btn btn-secondary" hidden>Comprobar sincronización</button><button id="account-logout" class="btn btn-secondary" hidden>Cerrar sesión</button><button id="account-import-legacy" class="btn btn-secondary" hidden>Importar mi biblioteca anterior de este navegador</button><button id="account-backup" class="btn btn-secondary">Descargar copia anterior de esta cuenta</button></div>';
     if(!configured){
       if(authRequired){document.getElementById('auth-gate').textContent='No se pudo cargar la configuración de acceso. Recarga para reintentar. Tu biblioteca permanece bloqueada.';return;}
+      document.getElementById('account-message').textContent='Estás usando una biblioteca local en este navegador.';
+      document.getElementById('account-backup').hidden=true;
       document.body.classList.remove('auth-locked');document.getElementById('auth-gate').hidden=true;window.HanziBoot?.done();return;
     }
     try{
     migrateLocal();cloudEnabled=false;clearTimeout(saveTimer);
     const notice=document.createElement('div');notice.id='device-sync-notice';notice.className='sync-notice';notice.hidden=true;
     notice.innerHTML='<div><strong>Hay cambios pendientes de sincronizar</strong><span></span></div><button class="btn btn-secondary">Ver cuenta</button>';
-    notice.querySelector('button').onclick=()=>showPage('import-export');document.querySelector('.content').prepend(notice);
+    notice.querySelector('button').onclick=()=>showPage('profile');document.querySelector('.content').prepend(notice);
     document.getElementById('account-sync').onclick=sync;
     document.getElementById('account-logout').onclick=logout;
     document.getElementById('account-import-legacy').onclick=importLegacy;
@@ -255,5 +257,15 @@ const VaultSync = (() => {
       setSyncStatus('error');
     }
   }
-  return {init,schedule,merge,configured,persist,logout,retry:sync,get canEdit(){return (!configured&&!authRequired)||Boolean(user&&ready);}};
+  async function askGuide(body, signal){
+    if(!config.guideAI || !user || !ready)throw new Error('Guía con IA no disponible');
+    const {data,error}=await client.functions.invoke('lin-guide',{body,signal});
+    if(error){
+      if(error.context?.status===429)throw new Error('Has alcanzado el límite de práctica con IA. Puedes seguir con las lecciones.');
+      throw new Error('No se pudo conectar con Lin. Prueba más tarde o sigue la recomendación de estudio.');
+    }
+    if(typeof data?.answer!=='string')throw new Error('No se recibió una respuesta de Lin.');
+    return data.answer;
+  }
+  return {init,schedule,merge,configured,persist,logout,retry:sync,askGuide,get guideAvailable(){return Boolean(config.guideAI&&user&&ready);},get canEdit(){return (!configured&&!authRequired)||Boolean(user&&ready);}};
 })();

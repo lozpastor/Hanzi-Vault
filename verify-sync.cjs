@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),http=require('node:http'),fs=require(
 let remote=null, revision=0;
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 const server=http.createServer((req,res)=>{
-  const file=path.join(process.cwd(),req.url==='/'?'index.html':req.url.split('?')[0]);
+  const file=path.join(process.cwd(),req.url.split('?')[0].slice(1)||'index.html');
   if(!fs.existsSync(file)){res.writeHead(404);res.end();return;}
   res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.json')?'application/json':'text/html');
   res.end(fs.readFileSync(file));
@@ -29,9 +29,9 @@ const server=http.createServer((req,res)=>{
           rpc:(_name,args)=>window.mockWrite(args)
         })};
       });
-      await page.goto(`http://127.0.0.1:${server.address().port}/`);
+      await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
       await page.waitForFunction(()=>document.getElementById('sync-label')?.textContent==='Sincronizado');
-      await page.evaluate(()=>{showPage('import-export');});
+      await page.evaluate(()=>{showPage('profile');});
       if(i===1) await page.evaluate(()=>{DB.words.push({id:'mobile-only',zh:'移动',pinyin:'yidong',translation:'móvil',status:'learning'});saveDB();});
       if(i===1) await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
       await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');

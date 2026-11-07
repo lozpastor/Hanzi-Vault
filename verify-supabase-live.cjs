@@ -40,7 +40,7 @@ async function request(path,key,method='GET',body,access=key){
     const http=require('node:http');
     const {chromium}=require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
     const server=http.createServer((req,res)=>{
-      const name=req.url==='/'?'index.html':req.url.split('?')[0].slice(1);
+      const name=req.url.split('?')[0].slice(1)||'index.html';
       if(!/^[\w-]+\.(html|js|css|json)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
       res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.json')?'application/json':'text/html');res.end(fs.readFileSync(name));
     });
@@ -54,7 +54,7 @@ async function request(path,key,method='GET',body,access=key){
           localStorage.setItem('hanzivault_owner',owner);
           localStorage.setItem('hanzivault_db',JSON.stringify({version:2,seedVersion:4,contentMigrationVersion:2,workbookVersion:'2026-09-09',words:[{id:'browser-'+i,zh:'学习',pinyin:'xuexi',translation:'study',status:'learning'}],grammar:[],categories:[],relations:[]}));
         },{owner:created[0],i});
-        await page.goto(`http://127.0.0.1:${server.address().port}/`);
+        await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
         await page.waitForSelector('#auth-form');
         assert.equal(await page.locator('.app').isVisible(),false);
         assert.equal(await page.evaluate(()=>DB.words.length),0);
@@ -64,7 +64,7 @@ async function request(path,key,method='GET',body,access=key){
         await page.waitForFunction(()=>document.getElementById('sync-label')?.textContent==='Sincronizado',null,{timeout:60000});
         assert.equal(await page.locator('#profile-name').textContent(),credentials[0].email);
         assert.equal(await page.locator('.app').isVisible(),true);
-        await page.evaluate(()=>showPage('import-export'));
+        await page.evaluate(()=>showPage('profile'));
         await page.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado',null,{timeout:60000});pages.push(page);
       }
       await pages[0].waitForFunction(()=>DB.words.some(w=>w.id==='browser-1'));
@@ -86,12 +86,12 @@ async function request(path,key,method='GET',body,access=key){
       await pages[0].evaluate(()=>{DB.words=DB.words.filter(w=>w.id!=='live-new-word');saveDB();});
       await pages[1].waitForFunction(()=>!DB.words.some(w=>w.id==='live-new-word'),null,{timeout:10000});
       const otherContext=await browser.newContext(),otherPage=await otherContext.newPage();
-      await otherPage.goto(`http://127.0.0.1:${server.address().port}/`);
+      await otherPage.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
       await otherPage.locator('#auth-email').fill(credentials[1].email);await otherPage.locator('#auth-password').fill(credentials[1].password);
       await otherPage.locator('#auth-form button').click();
       await otherPage.waitForFunction(()=>document.getElementById('sync-label').textContent==='Sincronizado');
       assert.equal(await otherPage.evaluate(()=>DB.words.length),0);
-      await otherPage.evaluate(()=>showPage('import-export'));
+      await otherPage.evaluate(()=>showPage('profile'));
       const newPassword=crypto.randomBytes(24).toString('base64url');
       await otherPage.locator('#account-new-password').fill(newPassword);await otherPage.locator('#account-confirm-password').fill(newPassword);
       await otherPage.locator('#account-password-form button').click();
