@@ -290,16 +290,38 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 .phrase-table th:nth-child(7){width:9%}
 .phrase-results{font-size:12px;color:var(--text2);margin:0 0 16px}
 #page-grammar .filters-bar>*{max-width:100%}
-#page-lessons{max-width:850px;padding-bottom:32px}
+#page-lessons{max-width:1050px;padding-bottom:32px}
 #page-lessons h2,#page-lessons h3{margin:20px 0 8px}
 #page-lessons p{margin:8px 0 12px}
+.lesson-nav{border:0;background:transparent;text-align:left;font-family:inherit}
+.lesson-hero{border:1px solid var(--border);border-radius:12px;background:var(--bg2);padding:clamp(16px,4vw,32px)}
+.dashboard-route{margin-bottom:24px}
+.dashboard-route p{margin:8px 0 14px}
+.lesson-hero h2{font-size:clamp(24px,4vw,36px);line-height:1.15;letter-spacing:-.035em}
+.lesson-kicker,.lesson-meta{font-size:12px;font-weight:600;color:var(--accent)}
+.lesson-kicker{display:block;margin-bottom:8px}
+.lesson-detail{margin-top:16px}
+.lesson-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px}
+.lesson-actions a{color:var(--accent);padding:8px 4px}
+.lesson-progress{display:grid;gap:6px;max-width:380px;color:var(--text2)}
+.lesson-progress progress{width:100%;accent-color:var(--accent)}
+.lesson-level{margin-top:26px}
+.lesson-tip{border-inline-start:3px solid var(--accent);background:var(--accent-bg);padding:14px 16px;border-radius:5px}
+.lesson-checklist{border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.lesson-checklist label{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer}
+.lesson-checklist input{margin-top:4px;accent-color:var(--accent)}
+.lesson-checklist small{display:block;color:var(--text2)}
+.lesson-save-status:empty{display:none}
 .lesson-library{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr));gap:10px;margin-top:14px}
-.lesson-library .lesson-link{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;white-space:normal}
+.lesson-library .lesson-link{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;text-align:left;white-space:normal;background:var(--bg2)}
+.lesson-library .lesson-link:hover{border-color:var(--accent)}
+.lesson-library small{color:var(--text2)}
 .lesson-list{padding-inline-start:24px}
 .lesson-list li{padding:10px 0;border-bottom:1px solid var(--border2)}
 #page-lessons details{margin-top:5px}
 #page-lessons summary{cursor:pointer}
 .lesson-status:empty{display:none}
+@media(max-width:900px){.app nav.mobile-dock{grid-template-columns:repeat(7,minmax(0,1fr))}}
 
 /* RECOMMENDATIONS */
 .rec-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;align-items:flex-start;gap:14px;transition:all var(--transition)}
@@ -417,6 +439,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <main id="auth-gate" aria-label="Acceso a Hanzi Vault"><p>Conectando con tu biblioteca…</p></main>
 <link rel="stylesheet" href="progress.css?v=20260911">
 <link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="learning-design.css">
 
 <div class="app">
 <!-- SIDEBAR -->
@@ -437,7 +460,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
       <span class="nav-icon">字</span><span class="nav-label">Mi Diccionario</span>
       <span class="nav-badge" id="nav-word-count">0</span>
     </div>
-    <button type="button" class="nav-item" style="border:0;background-color:transparent;text-align:left" title="Lecciones" onclick="showPage('lessons')"><span class="nav-icon">◈</span><span class="nav-label">Lecciones</span></button>
+    <button type="button" class="nav-item lesson-nav" title="Lecciones" onclick="showPage('lessons')"><span class="nav-icon">◇</span><span class="nav-label">Lecciones</span></button>
     <div class="nav-item" onclick="showPage('grammar')">
       <span class="nav-icon">句</span><span class="nav-label">Frases</span>
       <span class="nav-badge" id="nav-grammar-count">0</span>
@@ -499,12 +522,20 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+      <section class="lesson-hero dashboard-route">
+        <div>
+          <span class="lesson-kicker">Curso de conversación</span>
+          <h2>Mandarín cotidiano</h2>
+          <p>12 lecciones para escuchar, conversar y repasar a tu ritmo.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPage('lessons')">Ver lecciones</button>
+      </section>
       <section class="learning-section">
         <div class="learning-heading"><h2>Mi progresión</h2><select id="progress-scope" class="filter-select" aria-label="Contenido del panel de progresión" onchange="renderLearningProgress()"><option value="workbook">Mi Excel actual</option><option value="all">Toda mi biblioteca</option></select></div>
         <div id="learning-progress"></div><p id="learning-history"></p>
       </section>
-      <h2 class="page-title">Bienvenido de nuevo 👋</h2>
-      <p class="page-desc">Tu progreso en chino mandarín, todo en un lugar.</p>
+      <h2 class="page-title">Mi biblioteca</h2>
+      <p class="page-desc">Palabras y frases de tu colección.</p>
       <div class="stats-grid" id="stats-grid"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
         <div class="card">
@@ -934,6 +965,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="knowledge-sphere.js?v=20260912-boot"></script>
 <script src="lexical-search.js?v=20260912-boot"></script>
 <script src="lessons-data.js"></script>
+<script src="lessons-practice.js"></script>
 <script src="lessons.js"></script>
 <script>
 // ============================================================
@@ -1270,6 +1302,38 @@ function saveGrammar() {
   updateNavBadges();
   showToast(editId ? '✓ Estructura actualizada' : '✓ Estructura guardada');
   renderGrammar();
+}
+
+function saveLearnedLessonPhrases(phrases) {
+  if (!VaultSync.canEdit) throw new Error('Biblioteca no disponible');
+  const normalize = value => String(value || '').normalize('NFKC').replace(/[\s\p{P}]/gu, '');
+  const previous = DB.grammar;
+  const next = [...previous];
+  let changed = 0;
+  for (const [hanzi, pinyin, sound, spanish] of phrases) {
+    const index = next.findIndex(item => normalize(item.pattern) === normalize(hanzi));
+    const existing = next[index];
+    if (existing?.status === 'learned') continue;
+    const item = {
+      id: genId(), pattern: hanzi, meaning: spanish, exampleZh: hanzi,
+      examplePinyin: pinyin, exampleEs: spanish, explanation: `Pronunciación aproximada: ${sound}`,
+      date: new Date().toISOString(), ...existing,
+      status: 'learned', mastery: 'ready'
+    };
+    if (index < 0) next.unshift(item);
+    else next[index] = item;
+    changed++;
+  }
+  if (!changed) return 0;
+  DB.grammar = next;
+  try {
+    saveDB();
+  } catch (error) {
+    DB.grammar = previous;
+    throw error;
+  }
+  updateNavBadges();
+  return changed;
 }
 
 function saveCategory() {

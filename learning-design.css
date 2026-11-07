@@ -1,0 +1,60 @@
+.topbar-title,
+.lesson-kicker,
+.lesson-meta {
+  letter-spacing: .035em;
+}
+
+.lesson-hero {
+  border-radius: 7px;
+  border-inline-start: 3px solid var(--accent);
+}
+
+.lesson-hero h2 {
+  max-width: 24ch;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -.025em;
+}
+
+.dashboard-route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 28px;
+}
+
+.dashboard-route p { margin-bottom: 0; }
+
+.lesson-level {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.lesson-library .lesson-link {
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 114px;
+}
+
+.lesson-link strong { font-size: 15px; }
+.lesson-link small { line-height: 1.45; }
+.lesson-link .lesson-meta { margin-top: auto; padding-top: 6px; }
+
+.lesson-list li { padding-block: 14px; }
+.lesson-list .word-pinyin { display: inline-block; font-size: 16px; }
+.lesson-list small { color: var(--text2); }
+#page-lessons :is(h2, h3) { scroll-margin-top: 100px; }
+#page-lessons button:focus-visible,
+#page-lessons a:focus-visible,
+#page-lessons summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .dashboard-route { align-items: flex-start; }
+  #page-lessons .lesson-actions .btn { min-height: 44px; }
+  .lesson-library .lesson-link { min-height: 94px; }
+  .lesson-checklist label { min-height: 44px; }
+}
