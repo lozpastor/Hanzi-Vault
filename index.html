@@ -802,7 +802,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 </div><!-- /main -->
 </div><!-- /app -->
 
-<button class="guide-launch" type="button" onclick="VaultGuide.open()" aria-label="Abrir guía de Lin"><img src="lin.svg" alt="" width="42" height="32"> Lin</button>
+<button class="guide-launch" type="button" aria-label="Abrir guía de Lin" title="Lin · pulsa para hablar o arrastra para mover"><img src="lin.svg" alt="" width="84" height="54" draggable="false"><span class="lin-name">Lin</span></button>
 <dialog id="guide-dialog" aria-labelledby="guide-heading">
   <header class="guide-header"><span class="lesson-kicker">Guía de estudio</span><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar guía">✕</button></form></header>
   <div id="guide-content"></div>
@@ -997,6 +997,7 @@ h2.page-title{font-family:var(--font);font-size:24px;font-weight:600;color:var(-
 <script src="lexical-search.js?v=20260912-boot"></script>
 <script src="lessons-data.js"></script>
 <script src="lessons-practice.js"></script>
+<script src="lin-pet.js"></script>
 <script src="vault-guide.js"></script>
 <script src="lessons.js"></script>
 <script>

@@ -27,13 +27,25 @@ async function verify() {
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     const guide = page.getByRole('dialog');
     await guide.getByRole('heading', { name: 'Hola, soy Lin' }).waitFor();
+    assert.match(await page.locator('.sidebar [data-lin-target]').innerText(), /Lecciones/);
     await guide.getByRole('button', { name: 'Siguiente' }).click();
+    assert.match(await page.locator('.sidebar [data-lin-target]').innerText(), /Frases/);
     await guide.getByRole('button', { name: 'Siguiente' }).click();
+    assert.match(await page.locator('.sidebar [data-lin-target]').innerText(), /Repasar/);
     await guide.getByRole('button', { name: 'Ver mi recomendación' }).click();
     await guide.getByRole('heading', { name: 'Un rato con Lin' }).waitFor();
     await guide.getByRole('button', { name: 'Cerrar guía' }).click();
     await guide.waitFor({ state: 'hidden' });
+    assert.equal(await page.locator('[data-lin-target]').count(), 0);
     await page.screenshot({ path: 'qa-cuaderno-desktop.png' });
+    const pet = page.getByRole('button', { name: 'Abrir guía de Lin' });
+    const before = await pet.boundingBox();
+    await page.mouse.move(before.x + 25, before.y + 25);
+    await page.mouse.down();
+    await page.mouse.move(before.x - 130, before.y - 110, { steps: 12 });
+    await page.mouse.up();
+    assert((await pet.boundingBox()).x < before.x - 100);
+    assert.equal(await guide.isVisible(), false);
     await page.locator('.sidebar').getByRole('button', { name: 'Perfil' }).click();
     await page.getByLabel('Nivel de conversación').selectOption('3');
     await page.getByLabel('Apariencia').selectOption('dark');
@@ -61,6 +73,11 @@ async function verify() {
     await page.locator('.mobile-dock').getByRole('button', { name: 'Perfil' }).click();
     assert.equal(await page.getByLabel('Nivel de conversación').inputValue(), '3');
     await page.screenshot({ path: 'qa-cuaderno-perfil.png' });
+    await page.getByRole('button', { name: 'Volver a ver el tutorial' }).click();
+    assert.equal(await page.locator('.mobile-dock [data-lin-target]').getAttribute('data-page'), 'lessons');
+    await page.screenshot({ path: 'qa-lin-tutorial.png', animations: 'disabled' });
+    await page.keyboard.press('Escape');
+    await guide.waitFor({ state: 'hidden' });
     for (const width of [390, 820, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const section of ['dashboard', 'dictionary', 'grammar', 'lessons', 'review', 'profile', 'recommendations', 'categories', 'import-export']) {

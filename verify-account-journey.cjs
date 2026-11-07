@@ -66,8 +66,11 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.evaluate(()=>window.guideRequest),undefined);
     await page.getByLabel('Práctica con IA').fill('¿Cómo saludo?');
     await page.getByRole('button',{name:'Enviar a Lin'}).click();
-    await page.getByText('Di nǐ hǎo para saludar.').waitFor();
-    assert.deepEqual(await page.evaluate(()=>Object.keys(window.guideRequest.body).sort()),['level','question','topic']);
+    await page.getByText('Lin · Di nǐ hǎo para saludar.',{exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(()=>Object.keys(window.guideRequest.body).sort()),['history','level','question','topic']);
+    await page.getByRole('button',{name:'Hagamos un diálogo'}).click();
+    await page.waitForFunction(()=>window.guideRequest.body.history.length===1);
+    assert.equal(await page.evaluate(()=>window.guideRequest.body.history[0].question),'¿Cómo saludo?');
     await page.getByRole('button',{name:'Cerrar guía'}).click();
     await page.evaluate(()=>showPage('profile'));
     page.once('dialog',d=>d.accept());await page.locator('#account-import-legacy').click();

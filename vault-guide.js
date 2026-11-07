@@ -5,14 +5,15 @@ const VaultGuide = (() => {
   const systemTheme = matchMedia('(prefers-color-scheme: dark)');
   const defaults = { theme: 'system', level: 'auto', audio: 'slow', characters: false, seen: false };
   const tour = [
-    ['Hola, soy Lin', 'Vamos a practicar mandarín para usarlo fuera de la pantalla. En Lecciones puedes escuchar una frase, repetirla y probarla en una conversación corta.'],
-    ['Guarda lo que ya puedes decir', 'Al terminar, elige las frases que dirías sin mirar. Las encontrarás en tu biblioteca y podrás volver a practicarlas desde Repaso.'],
-    ['Encuentra tu siguiente paso', 'Vuelve a abrir a Lin cuando tengas unos minutos. Te sugeriré una lección o un repaso según tu progreso y el nivel que elijas en Perfil.'],
+    ['lessons', 'Hola, soy Lin', 'Por aquí se entra a Lecciones. Escucha una frase, repítela y pruébala en una conversación corta.'],
+    ['grammar', 'Guarda lo que ya puedes decir', 'Al terminar una lección, elige las frases que dirías sin mirar. Las encontrarás aquí, en Frases.'],
+    ['review', 'Vuelve a practicar', 'En Repaso puedes recuperar las frases de memoria. Pídeme ayuda cuando quieras decidir qué estudiar hoy.'],
   ];
   let owner = 'device';
   let preferences = { ...defaults };
   let step = null;
   let pending;
+  let conversation = [];
 
   function applyTheme() {
     const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && systemTheme.matches);
@@ -68,9 +69,8 @@ const VaultGuide = (() => {
 
   function render() {
     if (step !== null) {
-      const [heading, description] = tour[step];
-      content.innerHTML = `<img class="guide-art" src="lin.svg" width="360" height="220" alt="">
-        <p class="lesson-kicker">Primer acceso · ${step + 1} de ${tour.length}</p>
+      const [, heading, description] = tour[step];
+      content.innerHTML = `<p class="lesson-kicker">Primer acceso · ${step + 1} de ${tour.length}</p>
         <h2 id="guide-heading" tabindex="-1">${heading}</h2><p>${description}</p>
         <div class="notebook-actions"><button class="btn btn-primary" data-guide="next">${step === tour.length - 1 ? 'Ver mi recomendación' : 'Siguiente'}</button>
         <button class="btn btn-ghost" data-guide="skip">${step ? 'Saltar tutorial' : 'Ahora no'}</button></div>`;
@@ -79,17 +79,20 @@ const VaultGuide = (() => {
       const action = due ? 'review' : lesson ? lesson.id : 'lessons';
       const next = due ? `Tienes ${due} ${due === 1 ? 'ficha pendiente' : 'fichas pendientes'} de repaso.`
         : lesson ? `Prueba «${lesson.title}». ${lesson.goal}` : 'Has completado este nivel. Vuelve a una situación y prueba el reto oral sin mirar.';
-      content.innerHTML = `<img class="guide-art" src="lin.svg" width="360" height="220" alt="">
-        <h2 id="guide-heading" tabindex="-1">Un rato con Lin</h2>
+      content.innerHTML = `<h2 id="guide-heading" tabindex="-1">Un rato con Lin</h2>
+        <p class="lin-question">¿Cómo te apetece aprender hoy?</p>
+        ${VaultSync.guideAvailable ? `<div class="notebook-actions">
+          <button class="btn btn-secondary" data-prompt="Tengo cinco minutos. Ayúdame a elegir una práctica.">Tengo cinco minutos</button>
+          <button class="btn btn-secondary" data-prompt="Quiero practicar un diálogo. Empieza con una intervención corta en mandarín.">Hagamos un diálogo</button>
+        </div>` : ''}
         <p class="lesson-kicker">Siguiente paso · Nivel ${level}</p><p>${next}</p>
         <div class="notebook-actions"><button class="btn btn-primary" data-destination="${action}">${due ? 'Ir al repaso' : lesson ? 'Abrir lección' : 'Ver lecciones'}</button>
         ${due && lesson ? `<button class="btn btn-secondary" data-destination="${lesson.id}">Prefiero una lección</button>` : ''}</div>
-        ${VaultSync.guideAvailable ? `<form class="guide-ai">
+        ${VaultSync.guideAvailable ? `<div class="guide-answer" role="log" aria-label="Conversación con Lin"></div><form class="guide-ai">
           <label for="guide-question">Práctica con IA</label>
           <textarea id="guide-question" class="form-input" rows="3" maxlength="480" required placeholder="Pídeme un diálogo o escribe una frase para corregirla."></textarea>
-          <p>Al enviar, compartes con OpenAI el texto, tu nivel y el tema sugerido. Evita datos personales.</p>
+          <p>Al enviar o elegir una propuesta, compartes con OpenAI el mensaje, hasta dos intercambios previos, tu nivel y el tema. Evita datos personales.</p>
           <button class="btn btn-secondary" type="submit">Enviar a Lin</button>
-          <div class="guide-answer" role="status"></div>
         </form>` : ''}`;
     }
   }
@@ -97,8 +100,16 @@ const VaultGuide = (() => {
   function open(tutorial = false) {
     if (!VaultSync.canEdit || document.body.classList.contains('auth-locked') || dialog.open) return;
     step = tutorial ? 0 : null;
+    conversation = [];
+    dialog.classList.toggle('lin-tour', tutorial);
     render();
-    dialog.showModal();
+    if (tutorial) {
+      dialog.show();
+      LinPet.placeTour(tour[0][0], true);
+    } else {
+      dialog.showModal();
+      LinPet.state('speaking');
+    }
     content.querySelector('h2').focus();
   }
 
@@ -120,10 +131,14 @@ const VaultGuide = (() => {
       if (step >= tour.length) {
         step = null;
         save({ seen: true });
+        close();
+        return;
       }
       render();
+      LinPet.placeTour(tour[step][0], true);
       content.querySelector('h2').focus();
     }
+    if (button.dataset.prompt) ask(button.dataset.prompt);
     const destination = button.dataset.destination;
     if (!destination) return;
     close();
@@ -133,36 +148,67 @@ const VaultGuide = (() => {
     } else HanziLessons.openLesson(destination);
   });
 
-  content.addEventListener('submit', async event => {
+  content.addEventListener('submit', event => {
     event.preventDefault();
-    if (pending || !VaultSync.guideAvailable) return;
-    const question = content.querySelector('textarea').value.trim();
-    if (!question) return;
-    const output = content.querySelector('.guide-answer');
-    const button = event.target.querySelector('button');
-    const { level, lesson } = recommendation();
-    const request = new AbortController();
-    pending = request;
-    button.disabled = true;
-    output.textContent = 'Lin está preparando tu práctica…';
-    try {
-      const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20000)]);
-      const answer = await VaultSync.askGuide({ question, level, topic: lesson?.title || '' }, signal);
-      if (!request.signal.aborted) output.textContent = answer;
-    } catch (error) {
-      if (!request.signal.aborted) output.textContent = error.message;
-    } finally {
-      if (pending === request) pending = null;
-      button.disabled = false;
+    const input = content.querySelector('textarea');
+    if (!pending && input.value.trim()) {
+      ask(input.value.trim());
+      input.value = '';
     }
   });
 
+  async function ask(question) {
+    if (pending || !VaultSync.guideAvailable) return;
+    const output = content.querySelector('.guide-answer');
+    const buttons = [...content.querySelectorAll('[data-prompt], .guide-ai button')];
+    const { level, lesson } = recommendation();
+    const request = new AbortController();
+    pending = request;
+    for (const button of buttons) button.disabled = true;
+    const questionLine = document.createElement('p');
+    questionLine.textContent = 'Tú · ' + question;
+    const answerLine = document.createElement('p');
+    answerLine.textContent = 'Lin está pensando…';
+    output.append(questionLine, answerLine);
+    output.scrollTop = output.scrollHeight;
+    LinPet.state('thinking');
+    try {
+      const signal = AbortSignal.any([request.signal, AbortSignal.timeout(20000)]);
+      const answer = await VaultSync.askGuide({ question, level, topic: lesson?.title || '', history: conversation }, signal);
+      if (!request.signal.aborted) {
+        answerLine.textContent = 'Lin · ' + answer;
+        conversation = [...conversation, { question, answer: answer.slice(0, 900) }].slice(-2);
+        LinPet.state('speaking');
+      }
+    } catch (error) {
+      if (!request.signal.aborted) {
+        answerLine.textContent = error.message;
+        LinPet.state('idle');
+      }
+    } finally {
+      if (pending === request) pending = null;
+      for (const button of buttons) button.disabled = false;
+      if (!request.signal.aborted) output.scrollTop = output.scrollHeight;
+    }
+  }
+
   dialog.addEventListener('close', () => {
+    const finished = dialog.classList.contains('lin-tour') && step === null;
     pending?.abort();
     pending = null;
     if (step !== null) save({ seen: true });
     step = null;
+    dialog.classList.remove('lin-tour');
+    if (finished || dialog.style.left) LinPet.endTour();
+    else LinPet.state('idle');
     content.replaceChildren();
+    if (finished && VaultSync.canEdit) open();
+  });
+  window.addEventListener('resize', () => {
+    if (dialog.open && step !== null) LinPet.placeTour(tour[step][0]);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && dialog.open && step !== null) close();
   });
   form.addEventListener('submit', event => {
     event.preventDefault();

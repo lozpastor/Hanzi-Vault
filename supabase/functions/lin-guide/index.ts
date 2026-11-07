@@ -19,7 +19,7 @@ async function readInput(request: Request) {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > 4096) {
+    if (size > 12288) {
       await reader.cancel();
       throw new Error("Body too large");
     }
@@ -48,6 +48,11 @@ Deno.serve(async (request) => {
   const question = typeof input?.question === "string" ? input.question.trim() : "";
   const topic = typeof input?.topic === "string" ? input.topic.trim() : "";
   const level = input?.level;
+  const history = Array.isArray(input?.history) ? input.history.slice(-2).flatMap((turn: unknown) => {
+    if (!turn || typeof turn !== "object" || !("question" in turn) || !("answer" in turn)) return [];
+    if (typeof turn.question !== "string" || typeof turn.answer !== "string") return [];
+    return [{ question: turn.question.slice(0, 480), answer: turn.answer.slice(0, 900) }];
+  }) : [];
   if (!question || question.length > 480 || topic.length > 80 || ![1, 2, 3].includes(level)) {
     return reply(400, { error: "input" });
   }
@@ -80,7 +85,7 @@ Deno.serve(async (request) => {
         store: false,
         max_output_tokens: 500,
         instructions: "Eres Lin, guía de mandarín cotidiano para hispanohablantes. Responde en español claro y en texto plano breve. Atiende solo a práctica de mandarín. Adapta la dificultad al nivel 1 (primeros intercambios), 2 (autonomía cotidiana) o 3 (viajes e imprevistos). Incluye pinyin con tonos y traducción al introducir una frase. Si corriges, explica un solo cambio prioritario. Si propones un diálogo, da una situación y termina pidiendo al alumno una respuesta oral. No digas haber oído su voz ni haber evaluado su pronunciación.",
-        input: JSON.stringify({ level, topic, question }),
+        input: JSON.stringify({ level, topic, question, history }),
       }),
       signal: AbortSignal.timeout(12000),
     });
