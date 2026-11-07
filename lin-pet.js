@@ -9,11 +9,26 @@ const LinPet = (() => {
   let suppressClick = false;
   let lastTouch = Date.now();
   let flight;
+  let reaction;
+  const layers = ['feet', 'body', 'wing', 'eye', 'closed-eye', 'beak', 'open-beak'];
+  const sprite = `<svg class="lin-sprite" viewBox="0 0 128 112" aria-hidden="true" focusable="false">
+    <g class="lin-body">${layers.map(layer => `<use class="lin-${layer}" href="lin-character.svg#${layer}"/>`).join('')}</g>
+    <path class="lin-signal" d="M77 11 79 5m8 12 7-5m-26 2-3-6" fill="none" stroke="#c78b58" stroke-width="2" stroke-linecap="round"/>
+  </svg>`;
+  pet.innerHTML = sprite;
+  dialog.querySelector('.guide-portrait').innerHTML = sprite;
+  state('idle');
 
   function state(value) {
     clearTimeout(flight);
+    clearTimeout(reaction);
     pet.dataset.state = value;
     dialog.dataset.linState = value;
+  }
+
+  function react(value, delay) {
+    state(value);
+    reaction = setTimeout(() => state('idle'), delay);
   }
 
   function move(left, top, animate = false) {
@@ -91,7 +106,8 @@ const LinPet = (() => {
       if (!pointer || (name === 'pointerleave' && pointer.moved)) return;
       suppressClick = pointer.moved;
       pointer = null;
-      state('idle');
+      if (suppressClick) react('happy', 650);
+      else state('idle');
       if (suppressClick) setTimeout(() => { suppressClick = false; }, 350);
     });
   }
@@ -99,6 +115,19 @@ const LinPet = (() => {
     if (suppressClick && event.detail) return;
     lastTouch = Date.now();
     VaultGuide.open();
+  });
+  pet.addEventListener('pointerenter', () => {
+    if (!tour && !dialog.open && !pointer && pet.dataset.state !== 'flying') react('curious', 1100);
+  });
+  pet.addEventListener('keydown', event => {
+    const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const direction = directions[event.key];
+    if (!direction || tour || dialog.open) return;
+    event.preventDefault();
+    lastTouch = Date.now();
+    const box = pet.getBoundingClientRect();
+    move(box.left + direction[0] * 28, box.top + direction[1] * 28);
+    react('curious', 500);
   });
   window.addEventListener('resize', () => {
     if (tour) return;

@@ -14,6 +14,7 @@ const VaultGuide = (() => {
   let step = null;
   let pending;
   let conversation = [];
+  let guided;
 
   function applyTheme() {
     const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && systemTheme.matches);
@@ -84,7 +85,8 @@ const VaultGuide = (() => {
         ${VaultSync.guideAvailable ? `<div class="notebook-actions">
           <button class="btn btn-secondary" data-prompt="Tengo cinco minutos. Ayúdame a elegir una práctica.">Tengo cinco minutos</button>
           <button class="btn btn-secondary" data-prompt="Quiero practicar un diálogo. Empieza con una intervención corta en mandarín.">Hagamos un diálogo</button>
-        </div>` : ''}
+        </div>` : `<div class="notebook-actions"><button class="btn btn-secondary" data-guided="start">Ensayar un diálogo guiado</button></div>
+        <div class="lin-practice" aria-live="polite"></div>`}
         <p class="lesson-kicker">Siguiente paso · Nivel ${level}</p><p>${next}</p>
         <div class="notebook-actions"><button class="btn btn-primary" data-destination="${action}">${due ? 'Ir al repaso' : lesson ? 'Abrir lección' : 'Ver lecciones'}</button>
         ${due && lesson ? `<button class="btn btn-secondary" data-destination="${lesson.id}">Prefiero una lección</button>` : ''}</div>
@@ -101,6 +103,7 @@ const VaultGuide = (() => {
     if (!VaultSync.canEdit || document.body.classList.contains('auth-locked') || dialog.open) return;
     step = tutorial ? 0 : null;
     conversation = [];
+    guided = null;
     dialog.classList.toggle('lin-tour', tutorial);
     render();
     if (tutorial) {
@@ -122,6 +125,32 @@ const VaultGuide = (() => {
     if (!preferences.seen) open(true);
   }
 
+  function renderGuided(action) {
+    if (action === 'start') {
+      const { level, lesson } = recommendation();
+      const fallback = HANZI_LEVELS[level - 1].ids[0];
+      guided = { lesson: lesson || HANZI_LESSONS.find(item => item.id === fallback), turn: 0 };
+    }
+    if (!guided) return;
+    if (action === 'next') guided.turn += 2;
+    const host = content.querySelector('.lin-practice');
+    const { lesson, turn } = guided;
+    const opening = lesson.phrases[lesson.dialogue[turn]];
+    const response = lesson.phrases[lesson.dialogue[turn + 1]];
+    if (!opening || !response) {
+      host.innerHTML = `<p>Bien. Ahora repite el diálogo cambiando de papel.</p>
+        <button class="btn btn-secondary" data-destination="${lesson.id}">Abrir la lección</button>`;
+      LinPet.state('happy');
+      return;
+    }
+    host.innerHTML = `<p class="lesson-kicker">${lesson.title} · Turno ${turn / 2 + 1}</p>
+      <p><strong>Lin</strong> · <span lang="zh-Latn">${opening[1]}</span></p>
+      <p>Responde en voz alta y después compara.</p>
+      <details><summary>Ver una respuesta</summary><p lang="zh-Latn">${response[1]}</p><p>${response[3]}</p>
+      <button class="btn btn-secondary" data-guided="next">Seguir</button></details>`;
+    LinPet.state('speaking');
+  }
+
   content.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
@@ -139,6 +168,7 @@ const VaultGuide = (() => {
       content.querySelector('h2').focus();
     }
     if (button.dataset.prompt) ask(button.dataset.prompt);
+    if (button.dataset.guided) renderGuided(button.dataset.guided);
     const destination = button.dataset.destination;
     if (!destination) return;
     close();

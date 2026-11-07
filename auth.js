@@ -30,6 +30,12 @@ const VaultAuth=(()=>{
   function render(){
     const create=mode==='signup',reset=mode==='reset';
     gate().innerHTML=`<section class="auth-shell"><div class="auth-brand">HANZI VAULT</div><h1>${create?'Crea tu cuenta':reset?'Crea o recupera tu contraseña':'Tu biblioteca de chino'}</h1><p>${reset?'Recibirás un enlace para establecer una contraseña para esta web. Si ya tienes una sesión abierta, también puedes crearla desde Cuenta.':create?'Una biblioteca privada, vinculada a tu correo y disponible en todos tus dispositivos.':'Inicia sesión con tu correo y contraseña para acceder a tus palabras y frases.'}</p><form id="auth-form" class="auth-form"><label for="auth-email">Correo electrónico</label><input id="auth-email" class="form-input" type="email" autocomplete="username" required>${reset?'':`<label for="auth-password">Contraseña</label><input id="auth-password" class="form-input" type="password" autocomplete="${create?'new-password':'current-password'}" ${create?'minlength="12"':''} required>`}${create?'<label for="auth-confirm">Repite la contraseña</label><input id="auth-confirm" class="form-input" type="password" autocomplete="new-password" minlength="12" required><small>Mínimo 12 caracteres.</small>':''}<button class="btn btn-primary" type="submit">${reset?'Enviar enlace':create?'Crear cuenta':'Iniciar sesión'}</button></form><div class="auth-links"><button class="btn btn-secondary" id="auth-switch">${mode==='login'?'Crear cuenta':'Volver a iniciar sesión'}</button>${mode==='login'?'<button class="btn btn-secondary" id="auth-reset">Crear o recuperar contraseña</button>':''}</div><p id="auth-message" role="status" aria-live="polite"></p></section>`;
+    gate().insertAdjacentHTML('afterbegin', `<aside class="auth-field" aria-label="Acerca de Hanzi Vault">
+      <div class="auth-field-copy"><span class="lesson-kicker">汉字 / HANZI VAULT</span>
+      <p class="auth-field-title">Abre tu cuaderno.<br>Sal a conversar.</p>
+      <p>Mandarín para situaciones reales. Escucha, practica y guarda lo que aprendes.</p></div>
+      <img src="river-study.svg" width="740" height="430" alt="">
+    </aside>`);
     document.getElementById('auth-switch').onclick=()=>{if(!sending){mode=mode==='login'?'signup':'login';render();}};
     document.getElementById('auth-reset')?.addEventListener('click',()=>{if(!sending){mode='reset';render();}});
     document.getElementById('auth-form').onsubmit=submit;

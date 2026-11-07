@@ -2,8 +2,8 @@ const {chromium}=require('C:/Users/alexi/.cache/codex-runtimes/codex-primary-run
 const assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs');
 const server=http.createServer((req,res)=>{
   const name=req.url.split('?')[0].slice(1)||'index.html';
-  if(!/^[\w-]+\.(html|js|css|json)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
-  res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(name));
+  if(!/^[\w-]+\.(html|js|css|json|svg)$/.test(name)||!fs.existsSync(name)){res.writeHead(404);res.end();return;}
+  res.setHeader('Content-Type',name.endsWith('.svg')?'image/svg+xml':name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(name));
 });
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -34,6 +34,7 @@ const server=http.createServer((req,res)=>{
     });
     await page.goto(`http://127.0.0.1:${server.address().port}/?page=dashboard`);
     await page.waitForSelector('#auth-form');
+    await page.waitForFunction(()=>document.querySelector('.auth-field img')?.naturalWidth > 0);
     assert.equal(await page.locator('.app').isVisible(),false);
     assert.equal(await page.locator('.fab').isVisible(),false);
     assert.equal(await page.evaluate(()=>DB.words.length),0);

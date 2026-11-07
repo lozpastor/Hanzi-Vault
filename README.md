@@ -26,3 +26,10 @@ Para habilitar la práctica con IA en una instalación con Supabase:
 3. Añade `guideAI: true` al objeto público en `supabase-config.js` cuando el servicio esté operativo. Nunca incluyas claves privadas en ese archivo. La API tiene coste por uso.
 
 Al pulsar «Enviar a Lin» o elegir una propuesta se envían a OpenAI el mensaje, hasta dos intercambios anteriores, el nivel de conversación y el tema sugerido. La función no envía el correo, el identificador de cuenta ni la biblioteca. La conversación se muestra como texto y se descarta al cerrar a Lin.
+
+## Verificación antes del lanzamiento
+
+- Ejecuta `node verify-guide.cjs`, `node verify-account-journey.cjs`, `node verify-phrases.cjs`, `node verify-sync.cjs` y `node verify-startup.cjs`. Estas pruebas usan servicios simulados.
+- Con cuentas de prueba en el entorno publicado, verifica correo de alta y recuperación, sincronización entre dispositivos y exportación de datos. Comprueba la entrega y los límites del servicio de correo antes de abrir el registro al público.
+- Si activas IA, comprueba sesión, límites, coste y respuesta real antes de habilitar `guideAI`. Sin ese servicio, Lin ofrece diálogos guiados del curso.
+- Revisa privacidad, condiciones, soporte y gestión de datos de cuenta antes de aceptar clientes. Comprueba también el audio y el movimiento reducido en Safari móvil y Android.
